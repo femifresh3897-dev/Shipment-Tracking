@@ -1251,7 +1251,77 @@
                 setTimeout(() => toast.remove(), 300);
             }, 3500);
         }
+        function openPaymentModal() {
+  document.getElementById('paymentModal').style.display = 'flex';
+}
+
+function closePaymentModal() {
+  document.getElementById('paymentModal').style.display = 'none';
+}
+
+function switchTab(tab) {
+  if (tab === 'crypto') {
+    document.getElementById('cryptoTabContent').style.display = 'block';
+    document.getElementById('cardTabContent').style.display = 'none';
+    document.getElementById('btnCryptoTab').style.background = '#3b82f6';
+    document.getElementById('btnCryptoTab').style.color = '#fff';
+    document.getElementById('btnCardTab').style.background = '#1e293b';
+    document.getElementById('btnCardTab').style.color = '#94a3b8';
+  } else {
+    document.getElementById('cryptoTabContent').style.display = 'none';
+    document.getElementById('cardTabContent').style.display = 'block';
+    document.getElementById('btnCardTab').style.background = '#10b981';
+    document.getElementById('btnCardTab').style.color = '#fff';
+    document.getElementById('btnCryptoTab').style.background = '#1e293b';
+    document.getElementById('btnCryptoTab').style.color = '#94a3b8';
+  }
+}
+
+function copyWallet(elementId) {
+  const text = document.getElementById(elementId).innerText;
+  navigator.clipboard.writeText(text);
+  alert('Wallet address copied to clipboard!');
+}
+
     </script>
+    <!-- MULTI-CURRENCY & CRYPTO CHECKOUT MODAL -->
+<div id="paymentModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 9999; justify-content: center; align-items: center; padding: 20px;">
+  <div style="background: #0f172a; border: 1px solid #334155; border-radius: 12px; max-width: 450px; width: 100%; padding: 25px; color: #fff; position: relative;">
+    
+    <button onclick="closePaymentModal()" style="position: absolute; top: 15px; right: 15px; background: none; border: none; color: #94a3b8; font-size: 1.2rem; cursor: pointer;">✖</button>
+    
+    <h3 style="margin-top: 0; color: #38bdf8;">Complete Payment</h3>
+    <p style="font-size: 0.9rem; color: #94a3b8; margin-bottom: 20px;">Select your preferred payment method below to complete clearance.</p>
+
+    <!-- TAB BUTTONS -->
+    <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+      <button onclick="switchTab('crypto')" id="btnCryptoTab" style="flex: 1; padding: 10px; background: #3b82f6; color: #fff; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">₿ Crypto</button>
+      <button onclick="switchTab('card')" id="btnCardTab" style="flex: 1; padding: 10px; background: #1e293b; color: #94a3b8; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">💳 Card / Gateway</button>
+    </div>
+
+    <!-- CRYPTO TAB -->
+    <div id="cryptoTabContent">
+      <div style="background: #1e293b; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
+        <span style="font-size: 0.8rem; color: #94a3b8;">Bitcoin (BTC) Wallet:</span>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px;">
+          <small id="btcWallet" style="font-family: monospace; color: #f59e0b; word-break: break-all;">bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh</small>
+          <button onclick="copyWallet('btcWallet')" style="background: #334155; color: #fff; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer;">Copy</button>
+        </div>
+      </div>
+      <p style="font-size: 0.8rem; color: #94a3b8;">Transfer the exact fee amount and contact support with your hash.</p>
+    </div>
+
+    <!-- CARD TAB -->
+    <div id="cardTabContent" style="display: none;">
+      <p style="font-size: 0.9rem; color: #cbd5e1;">Proceed to secure online gateway for instant card settlement:</p>
+      <a href="https://paystack.com/pay/YOUR_CUSTOM_PAY_LINK" target="_blank" style="display: block; text-align: center; background: #10b981; color: white; padding: 12px; border-radius: 8px; text-decoration: none; font-weight: bold; margin-top: 15px;">
+        Pay via Secure Gateway 🔒
+      </a>
+    </div>
+
+  </div>
+</div>
+
 </body>
     <!-- CUSTOMS FEE ALERT BANNER -->
 <div id="actionAlertBox" style="background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; border-radius: 10px; padding: 16px; margin: 15px 0;">
