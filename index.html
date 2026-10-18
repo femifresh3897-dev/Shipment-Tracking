@@ -1253,4 +1253,27 @@
         }
     </script>
 </body>
+    <!-- CUSTOMS FEE ALERT BANNER -->
+<div id="actionAlertBox" style="background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; border-radius: 10px; padding: 16px; margin: 15px 0;">
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <span style="font-size: 1.8rem;">⚠️</span>
+    <div>
+      <h4 style="margin: 0; color: #fca5a5; font-size: 1.05rem;">Action Required: Customs Payment Pending</h4>
+      <p id="actionNoteText" style="margin: 4px 0 0 0; font-size: 0.85rem; color: #cbd5e1;">
+        Package held at local clearance office due to unpaid inspection & clearance charges.
+      </p>
+    </div>
+  </div>
+  
+  <div style="margin-top: 14px; padding-top: 10px; border-top: 1px dashed rgba(239, 68, 68, 0.4); display: flex; justify-content: space-between; align-items: center;">
+    <div>
+      <span style="font-size: 0.75rem; color: #fca5a5; text-transform: uppercase;">Amount Due:</span>
+      <strong id="feeAmountDisplay" style="font-size: 1.2rem; color: #fff; display: block;">$150.00 USD</strong>
+    </div>
+    <button onclick="openPaymentModal()" style="background: #ef4444; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-weight: bold; font-size: 0.85rem; cursor: pointer;">
+      Pay Fee Now 💳
+    </button>
+  </div>
+</div>
+
 </html>
