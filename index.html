@@ -1,1349 +1,546 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ExpressTrack - Global Logistics & Package Tracking Portal</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Font Awesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <!-- Leaflet CSS for Map -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <!-- Leaflet JS -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        fedex: {
-                            purple: '#4D148C',
-                            orange: '#FF6600',
-                            darkPurple: '#2E0B56',
-                            lightBg: '#F3F4F6',
-                            darkBg: '#0F172A',
-                            cardDark: '#1E293B',
-                            grayText: '#94A3B8'
-                        }
-                    },
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                    }
-                }
-            }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ExpressTrack - Global Logistics & Cargo Tracking</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: { purple: '#4D148C', orange: '#FF6600', darkBg: '#0F172A', cardDark: '#1E293B', textMuted: '#94A3B8' }
+          }
         }
-    </script>
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-        }
-        #map {
-            height: 380px;
-            width: 100%;
-            border-radius: 0.75rem;
-            z-index: 10;
-        }
-        .custom-pulse-marker {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .pulse-ring {
-            position: absolute;
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            background-color: rgba(255, 102, 0, 0.4);
-            animation: pulse-animation 2s infinite ease-out;
-        }
-        .pulse-ring.paused {
-            background-color: rgba(239, 68, 68, 0.4);
-            animation: none;
-        }
-        @keyframes pulse-animation {
-            0% { transform: scale(0.5); opacity: 1; }
-            100% { transform: scale(1.8); opacity: 0; }
-        }
-        /* Custom scrollbars */
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 6px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: rgba(0, 0, 0, 0.05);
-            border-radius: 8px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: rgba(77, 20, 140, 0.3);
-            border-radius: 8px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: rgba(77, 20, 140, 0.6);
-        }
-        /* Toast notification styling */
-        #toast-container {
-            position: fixed;
-            bottom: 24px;
-            right: 24px;
-            z-index: 9999;
-        }
-    </style>
+      }
+    }
+  </script>
+  <style>
+    #map { height: 320px; width: 100%; border-radius: 0.75rem; }
+  </style>
 </head>
-<body class="min-h-screen flex flex-col bg-slate-900 text-slate-100 antialiased">
-
-    <!-- Toast Notification Container -->
-    <div id="toast-container" class="flex flex-col gap-2"></div>
-
-    <!-- Top Navigation Header -->
-    <header class="bg-fedex-darkPurple/90 backdrop-blur-md border-b border-purple-900/50 sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center justify-between h-20">
-                <!-- Brand Logo -->
-                <div class="flex items-center space-x-3 cursor-pointer" onclick="switchTab('tracking')">
-                    <div class="bg-fedex-orange p-2.5 rounded-xl shadow-lg text-white font-extrabold text-2xl tracking-tighter">
-                        <i class="fa-solid fa-truck-fast"></i>
-                    </div>
-                    <div>
-                        <span class="text-2xl font-black tracking-tight text-white">Express<span class="text-fedex-orange">Track</span></span>
-                        <span class="block text-[10px] font-bold tracking-widest text-purple-300 uppercase">Global Express Logistics</span>
-                    </div>
-                </div>
-
-                <!-- Navigation Switcher Buttons -->
-                <div class="flex items-center space-x-2 sm:space-x-3">
-                    <nav class="flex bg-slate-950/70 p-1.5 rounded-xl border border-purple-900/40">
-                        <button id="nav-tracking-btn" onclick="switchTab('tracking')" 
-                            class="px-4 py-2 text-xs sm:text-sm font-bold rounded-lg transition-all flex items-center space-x-2 bg-fedex-orange text-white shadow-md">
-                            <i class="fa-solid fa-magnifying-glass"></i>
-                            <span>Track Package</span>
-                        </button>
-                        <button id="nav-admin-btn" onclick="switchTab('admin')" 
-                            class="px-4 py-2 text-xs sm:text-sm font-bold rounded-lg transition-all flex items-center space-x-2 text-purple-200 hover:text-white hover:bg-purple-800/40">
-                            <i class="fa-solid fa-sliders"></i>
-                            <span>Dispatch Controller</span>
-                            <span class="ml-1 bg-fedex-purple text-purple-200 text-[10px] px-2 py-0.5 rounded-full font-extrabold border border-purple-400/30">ADMIN</span>
-                        </button>
-                    </nav>
-                </div>
-            </div>
-        </div>
-    </header>
-
-    <!-- Main Dynamic View Container -->
-    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-
-        <!-- ========================================== -->
-        <!-- PUBLIC PACKAGE TRACKING VIEW               -->
-        <!-- ========================================== -->
-        <section id="tracking-view" class="space-y-6">
-            
-            <!-- Hero Search & Pre-loaded Quick Selection -->
-            <div class="bg-slate-800/80 backdrop-blur border border-slate-700/60 rounded-2xl p-6 sm:p-8 shadow-2xl">
-                <div class="max-w-3xl mx-auto text-center">
-                    <h1 class="text-2xl sm:text-3xl font-black text-white mb-2 tracking-tight">Real-Time Express Package Tracking</h1>
-                    <p class="text-slate-400 text-xs sm:text-sm mb-6">Enter your global shipment code below to view real-time location telemetry, timeline updates, and live maps.</p>
-                    
-                    <form onsubmit="handleSearch(event)" class="relative flex items-center max-w-2xl mx-auto">
-                        <div class="relative flex-grow">
-                            <i class="fa-solid fa-barcode absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-lg"></i>
-                            <input type="text" id="tracking-input" placeholder="e.g. FX-984720192-US" 
-                                class="w-full pl-12 pr-4 py-4 rounded-xl bg-slate-900 border-2 border-slate-700 focus:border-fedex-orange focus:outline-none font-mono text-base font-bold uppercase tracking-wider text-white placeholder-slate-500 transition-all shadow-inner">
-                        </div>
-                        <button type="submit" class="ml-3 px-6 py-4 bg-fedex-purple hover:bg-purple-900 text-white font-extrabold rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center space-x-2 text-sm sm:text-base border border-purple-500/30">
-                            <i class="fa-solid fa-magnifying-glass"></i>
-                            <span class="hidden sm:inline">Track</span>
-                        </button>
-                    </form>
-
-                    <!-- Pre-loaded Sample Tracking Numbers -->
-                    <div class="mt-5 flex flex-wrap items-center justify-center gap-2 text-xs text-slate-400">
-                        <span class="font-semibold text-slate-500 uppercase tracking-wider text-[11px]">Demo Codes:</span>
-                        <button onclick="loadDemoCode('FX-984720192-US')" class="px-3 py-1 bg-slate-900 hover:bg-purple-900/40 text-purple-300 border border-purple-800/40 rounded-lg font-mono font-bold transition-all">FX-984720192-US (Active Transit)</button>
-                        <button onclick="loadDemoCode('FX-102938475-US')" class="px-3 py-1 bg-slate-900 hover:bg-purple-900/40 text-red-400 border border-red-800/40 rounded-lg font-mono font-bold transition-all">FX-102938475-US (Paused Hold)</button>
-                        <button onclick="loadDemoCode('FX-552109841-US')" class="px-3 py-1 bg-slate-900 hover:bg-purple-900/40 text-emerald-400 border border-emerald-800/40 rounded-lg font-mono font-bold transition-all">FX-552109841-US (Delivered)</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Active Shipment Result Card -->
-            <div id="shipment-details-card" class="space-y-6">
-                
-                <!-- Status Alert Banner -->
-                <div id="status-banner" class="bg-fedex-purple border border-purple-500/40 text-white px-6 py-3.5 rounded-2xl flex flex-wrap items-center justify-between text-xs sm:text-sm font-semibold shadow-lg gap-2">
-                    <div class="flex items-center space-x-2.5">
-                        <i id="status-banner-icon" class="fa-solid fa-truck-fast text-lg text-fedex-orange"></i>
-                        <span id="status-banner-text">Package is moving normally along scheduled air-ground route.</span>
-                    </div>
-                    <div class="flex items-center space-x-4">
-                        <button onclick="copyTrackingLink()" class="hover:text-fedex-orange transition-colors flex items-center space-x-1 font-bold">
-                            <i class="fa-regular fa-copy"></i>
-                            <span>Copy Link</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Primary Metadata Header Card -->
-                <div class="bg-slate-800/80 backdrop-blur border border-slate-700/60 rounded-2xl p-6 sm:p-8 space-y-6 shadow-xl">
-                    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 border-b border-slate-700/60 pb-6">
-                        <div>
-                            <div class="flex flex-wrap items-center gap-3">
-                                <h2 id="display-tracking-id" class="text-2xl sm:text-3xl font-black font-mono tracking-tight text-white">FX-984720192-US</h2>
-                                <span id="display-status-badge" class="px-3.5 py-1 text-xs font-black rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 uppercase tracking-wider">In Transit</span>
-                            </div>
-                            <p class="text-xs sm:text-sm text-slate-400 mt-2">
-                                Carrier: <span id="display-carrier" class="font-bold text-slate-200">ExpressTrack Priority Freight</span> • 
-                                Service: <span id="display-service" class="font-bold text-slate-200">Overnight Direct Express</span>
-                            </p>
-                        </div>
-
-                        <!-- Summary Spec Badges -->
-                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-900/80 p-4 rounded-xl border border-slate-700/50">
-                            <div>
-                                <span class="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Est. Delivery</span>
-                                <span id="display-est-delivery" class="text-xs sm:text-sm font-extrabold text-white">Oct 24, 2026</span>
-                            </div>
-                            <div>
-                                <span class="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Weight</span>
-                                <span id="display-weight" class="text-xs sm:text-sm font-extrabold text-white">12.4 lbs / 5.6 kg</span>
-                            </div>
-                            <div>
-                                <span class="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Sender</span>
-                                <span id="display-sender" class="text-xs sm:text-sm font-extrabold text-white">Apex Tech Corp</span>
-                            </div>
-                            <div>
-                                <span class="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Recipient</span>
-                                <span id="display-recipient" class="text-xs sm:text-sm font-extrabold text-white">John Doe, NY</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Progress Bar & Stepper -->
-                    <div class="space-y-4">
-                        <div class="flex justify-between items-center text-xs font-bold uppercase tracking-wider text-slate-400">
-                            <span id="origin-city-label" class="text-slate-200">Memphis Hub, TN</span>
-                            <span id="progress-percent-label" class="text-fedex-orange font-black">65% Progress</span>
-                            <span id="dest-city-label" class="text-slate-200">New York, NY</span>
-                        </div>
-
-                        <!-- Progress Bar Fill -->
-                        <div class="w-full bg-slate-900 h-3.5 rounded-full overflow-hidden p-0.5 border border-slate-700/50">
-                            <div id="progress-bar-fill" class="bg-gradient-to-r from-fedex-purple to-fedex-orange h-full rounded-full transition-all duration-700 shadow-md" style="width: 65%;"></div>
-                        </div>
-
-                        <!-- Stepper Icons -->
-                        <div class="grid grid-cols-4 text-center text-[11px] font-bold text-slate-400 pt-2">
-                            <div id="step-1" class="flex flex-col items-center text-purple-400">
-                                <div class="w-7 h-7 rounded-full bg-fedex-purple text-white flex items-center justify-center mb-1 text-xs shadow border border-purple-400/30">✓</div>
-                                <span>Picked Up</span>
-                            </div>
-                            <div id="step-2" class="flex flex-col items-center text-purple-400">
-                                <div class="w-7 h-7 rounded-full bg-fedex-purple text-white flex items-center justify-center mb-1 text-xs shadow border border-purple-400/30">✓</div>
-                                <span>In Transit</span>
-                            </div>
-                            <div id="step-3" class="flex flex-col items-center text-fedex-orange font-bold">
-                                <div id="step-3-icon" class="w-7 h-7 rounded-full bg-fedex-orange text-white flex items-center justify-center mb-1 text-xs shadow border border-orange-400/30">
-                                    <i class="fa-solid fa-truck"></i>
-                                </div>
-                                <span id="step-3-text">Out for Delivery</span>
-                            </div>
-                            <div id="step-4" class="flex flex-col items-center">
-                                <div id="step-4-icon" class="w-7 h-7 rounded-full bg-slate-700 text-slate-400 flex items-center justify-center mb-1 text-xs">
-                                    <i class="fa-solid fa-house"></i>
-                                </div>
-                                <span id="step-4-text">Delivered</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Live Route Map & Timeline Activity Log -->
-                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                    
-                    <!-- Interactive Leaflet Map Grid Column -->
-                    <div class="lg:col-span-7 bg-slate-800/80 backdrop-blur border border-slate-700/60 rounded-2xl p-5 flex flex-col justify-between space-y-4 shadow-xl">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center space-x-2">
-                                <i class="fa-solid fa-map-location-dot text-fedex-orange text-lg"></i>
-                                <h3 class="font-extrabold text-white text-sm sm:text-base">Live Route Telemetry</h3>
-                            </div>
-                            <span id="live-moving-indicator" class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                                <span class="w-2 h-2 mr-1.5 bg-emerald-400 rounded-full animate-pulse"></span> Active Moving
-                            </span>
-                        </div>
-
-                        <!-- Leaflet Canvas -->
-                        <div class="relative overflow-hidden rounded-xl border border-slate-700/70 shadow-inner">
-                            <div id="map"></div>
-                        </div>
-
-                        <div class="flex flex-wrap items-center justify-between text-xs text-slate-400 bg-slate-900/80 p-3 rounded-xl border border-slate-700/50 gap-2">
-                            <div class="flex items-center space-x-2">
-                                <i class="fa-solid fa-location-crosshairs text-fedex-orange"></i>
-                                <span>Current Pin: <strong id="map-current-loc-name" class="text-slate-200">Knoxville Hub, TN</strong></span>
-                            </div>
-                            <div class="flex items-center space-x-3 text-[11px]">
-                                <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-fedex-purple inline-block mr-1"></span> Origin</span>
-                                <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-fedex-orange inline-block mr-1"></span> Current</span>
-                                <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-slate-500 inline-block mr-1"></span> Destination</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Travel History Checkpoints Column -->
-                    <div class="lg:col-span-5 bg-slate-800/80 backdrop-blur border border-slate-700/60 rounded-2xl p-6 flex flex-col shadow-xl">
-                        <div class="flex items-center justify-between mb-4 border-b border-slate-700/60 pb-3">
-                            <div class="flex items-center space-x-2">
-                                <i class="fa-solid fa-clock-rotate-left text-fedex-purple text-lg"></i>
-                                <h3 class="font-extrabold text-white text-sm sm:text-base">Travel History Log</h3>
-                            </div>
-                            <span id="event-count-badge" class="bg-purple-900/60 border border-purple-500/30 text-purple-200 text-xs font-extrabold px-2.5 py-1 rounded-full">4 Events</span>
-                        </div>
-
-                        <!-- Travel Checkpoints Timeline -->
-                        <div id="timeline-container" class="space-y-5 overflow-y-auto max-h-[390px] pr-2 custom-scrollbar">
-                            <!-- Dynamically Injected -->
-                        </div>
-                    </div>
-
-                </div>
-
-            </div>
-
-            <!-- Not Found Card -->
-            <div id="not-found-card" class="hidden bg-slate-800/80 border border-slate-700/60 rounded-2xl p-12 text-center space-y-4 shadow-xl">
-                <div class="w-16 h-16 bg-red-500/20 border border-red-500/30 text-red-400 rounded-full flex items-center justify-center mx-auto text-2xl">
-                    <i class="fa-solid fa-triangle-exclamation"></i>
-                </div>
-                <h3 class="text-xl font-bold text-white">Tracking Code Not Found</h3>
-                <p class="text-slate-400 text-xs sm:text-sm max-w-md mx-auto">No shipment records matched that tracking code. Try choosing one of our demo codes above or check for typos.</p>
-                <button onclick="loadDemoCode('FX-984720192-US')" class="px-5 py-2.5 bg-fedex-purple hover:bg-purple-900 text-white font-bold text-xs rounded-xl transition-all">
-                    Load Active Demo Package
-                </button>
-            </div>
-
-        </section>
-
-        <!-- ========================================== -->
-        <!-- ADMIN / LOGISTICS CONTROL PANEL VIEW       -->
-        <!-- ========================================== -->
-        <section id="admin-view" class="hidden space-y-6">
-            
-            <!-- Admin Top Banner -->
-            <div class="bg-gradient-to-r from-purple-950 via-fedex-darkPurple to-slate-900 border border-purple-800/50 rounded-2xl p-6 sm:p-8 shadow-2xl">
-                <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                    <div>
-                        <div class="inline-flex items-center space-x-2 bg-purple-900/80 px-3 py-1 rounded-full text-xs font-bold text-purple-200 border border-purple-600/40 mb-2">
-                            <i class="fa-solid fa-shield-halved text-fedex-orange"></i>
-                            <span>Logistics Operations & Dispatch Console</span>
-                        </div>
-                        <h2 class="text-2xl sm:text-3xl font-black text-white">Shipment Control Center</h2>
-                        <p class="text-slate-300 text-xs sm:text-sm mt-1">Override shipment status, pause package movement, edit delivery details, update coordinates, or stream live movement.</p>
-                    </div>
-
-                    <button onclick="createNewPackagePrompt()" class="bg-fedex-orange hover:bg-orange-600 text-white font-black px-5 py-3 rounded-xl shadow-lg transition-all text-xs sm:text-sm flex items-center space-x-2 border border-orange-400/30">
-                        <i class="fa-solid fa-plus"></i>
-                        <span>Register New Package</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Admin Controls Grid -->
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                
-                <!-- Left Column: Package Selector & Hold Controls -->
-                <div class="lg:col-span-5 space-y-6">
-                    
-                    <!-- Package Selector -->
-                    <div class="bg-slate-800/80 border border-slate-700/60 rounded-2xl p-6 space-y-4 shadow-xl">
-                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider">Select Package to Dispatch</label>
-                        <select id="admin-package-select" onchange="onAdminSelectPackage()" 
-                            class="w-full bg-slate-900 border-2 border-slate-700 rounded-xl p-3 font-mono font-bold text-white focus:outline-none focus:border-fedex-orange text-sm">
-                            <!-- Populated dynamically -->
-                        </select>
-
-                        <!-- Pause / Hold Action Box -->
-                        <div class="bg-slate-900/90 p-4 rounded-xl border border-slate-700/60 space-y-3">
-                            <div class="flex items-center justify-between">
-                                <div>
-                                    <span class="text-[10px] font-bold text-slate-400 block uppercase">Current Movement State</span>
-                                    <span id="admin-current-status-text" class="text-sm font-extrabold text-emerald-400">IN TRANSIT (Moving)</span>
-                                </div>
-                                <span id="admin-pause-indicator" class="w-3 h-3 rounded-full bg-emerald-400 animate-pulse"></span>
-                            </div>
-
-                            <button id="admin-pause-btn" onclick="togglePausePackage()" 
-                                class="w-full py-3 px-4 rounded-xl font-bold text-xs sm:text-sm shadow-md transition-all flex items-center justify-center space-x-2 bg-red-600 hover:bg-red-700 text-white border border-red-400/30">
-                                <i class="fa-solid fa-circle-pause"></i>
-                                <span>PAUSE SHIPMENT (PUT ON HOLD)</span>
-                            </button>
-                            <p class="text-[11px] text-slate-400 text-center">Pausing instantly updates public tracking status to "On Hold / Paused" and stops simulated route progression.</p>
-                        </div>
-
-                        <!-- Live Automated Movement Simulator -->
-                        <div class="bg-purple-950/40 p-4 rounded-xl border border-purple-800/50 space-y-3">
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center space-x-2">
-                                    <i class="fa-solid fa-robot text-fedex-orange"></i>
-                                    <span class="text-xs font-bold text-purple-200 uppercase">Automated GPS Telemetry Simulator</span>
-                                </div>
-                                <span id="sim-status-badge" class="text-[10px] font-bold text-purple-300 bg-purple-900 px-2 py-0.5 rounded-md border border-purple-500/30">OFF</span>
-                            </div>
-                            <p class="text-[11px] text-slate-400">Simulates real-time vehicle progression along the route in 4-second intervals.</p>
-                            <button id="sim-toggle-btn" onclick="toggleSimulator()" 
-                                class="w-full py-2.5 px-4 rounded-xl font-bold text-xs bg-fedex-purple text-white hover:bg-purple-900 transition-colors flex items-center justify-center space-x-2 border border-purple-400/30">
-                                <i class="fa-solid fa-play"></i>
-                                <span>Start Route Movement Simulator</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Shipment Details Editor -->
-                    <div class="bg-slate-800/80 border border-slate-700/60 rounded-2xl p-6 space-y-4 shadow-xl">
-                        <div class="border-b border-slate-700/60 pb-3">
-                            <h3 class="font-extrabold text-white text-sm flex items-center space-x-2">
-                                <i class="fa-solid fa-pen-to-square text-fedex-orange"></i>
-                                <span>Edit Shipment Manifest</span>
-                            </h3>
-                            <p class="text-[11px] text-slate-400">Update recipient, estimated delivery, and weight metadata.</p>
-                        </div>
-
-                        <form onsubmit="handleManifestEdit(event)" class="space-y-3 text-xs">
-                            <div>
-                                <label class="block text-slate-400 font-bold mb-1">Recipient Name / City</label>
-                                <input type="text" id="edit-recipient" required class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white font-semibold">
-                            </div>
-                            <div>
-                                <label class="block text-slate-400 font-bold mb-1">Sender Entity</label>
-                                <input type="text" id="edit-sender" required class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white font-semibold">
-                            </div>
-                            <div class="grid grid-cols-2 gap-2">
-                                <div>
-                                    <label class="block text-slate-400 font-bold mb-1">Est. Delivery Date</label>
-                                    <input type="text" id="edit-est-delivery" required class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white font-semibold">
-                                </div>
-                                <div>
-                                    <label class="block text-slate-400 font-bold mb-1">Package Weight</label>
-                                    <input type="text" id="edit-weight" required class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white font-semibold">
-                                </div>
-                            </div>
-                            <button type="submit" class="w-full py-2.5 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-xl transition-all">
-                                Update Manifest Metadata
-                            </button>
-                        </form>
-                    </div>
-
-                </div>
-
-                <!-- Right Column: Manual Scan Checkpoint Append Form -->
-                <div class="lg:col-span-7 bg-slate-800/80 border border-slate-700/60 rounded-2xl p-6 sm:p-8 space-y-6 shadow-xl">
-                    <div class="border-b border-slate-700/60 pb-4">
-                        <h3 class="text-lg font-black text-white flex items-center space-x-2">
-                            <i class="fa-solid fa-location-dot text-fedex-orange"></i>
-                            <span>Append Manual Location & Checkpoint Event</span>
-                        </h3>
-                        <p class="text-xs text-slate-400 mt-1">Manually insert a scanning event. This instantly pushes updates to the tracking history log, progress bar, and map pin.</p>
-                    </div>
-
-                    <form onsubmit="handleManualUpdate(event)" class="space-y-4 text-xs">
-                        
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <!-- Status Type Tag -->
-                            <div>
-                                <label class="block font-bold text-slate-300 uppercase mb-1">Status Type</label>
-                                <select id="update-status-type" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 font-semibold text-white focus:outline-none focus:border-fedex-orange">
-                                    <option value="In Transit">In Transit (Moving)</option>
-                                    <option value="Arrived at Facility">Arrived at Sort Hub</option>
-                                    <option value="Departed Facility">Departed Transit Hub</option>
-                                    <option value="Out for Delivery">Out for Delivery</option>
-                                    <option value="Delivered">Delivered (Complete)</option>
-                                    <option value="On Hold / Paused">On Hold / Exception</option>
-                                </select>
-                            </div>
-
-                            <!-- Location Name -->
-                            <div>
-                                <label class="block font-bold text-slate-300 uppercase mb-1">Facility / Location Name</label>
-                                <input type="text" id="update-location-name" required placeholder="e.g. Roanoke Sort Hub, VA" 
-                                    class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 font-semibold text-white focus:outline-none focus:border-fedex-orange">
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <!-- Latitude Pin -->
-                            <div>
-                                <label class="block font-bold text-slate-300 uppercase mb-1">Latitude (Map Pin Override)</label>
-                                <input type="number" step="0.0001" id="update-lat" placeholder="e.g. 37.2709" 
-                                    class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 font-semibold text-white focus:outline-none focus:border-fedex-orange">
-                            </div>
-
-                            <!-- Longitude Pin -->
-                            <div>
-                                <label class="block font-bold text-slate-300 uppercase mb-1">Longitude (Map Pin Override)</label>
-                                <input type="number" step="0.0001" id="update-lng" placeholder="e.g. -79.9414" 
-                                    class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 font-semibold text-white focus:outline-none focus:border-fedex-orange">
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <!-- Timestamp -->
-                            <div>
-                                <label class="block font-bold text-slate-300 uppercase mb-1">Date & Time</label>
-                                <input type="datetime-local" id="update-timestamp" required 
-                                    class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 font-semibold text-white focus:outline-none focus:border-fedex-orange">
-                            </div>
-
-                            <!-- Route Progress % Override -->
-                            <div>
-                                <label class="block font-bold text-slate-300 uppercase mb-1">Route Progress % (0 to 100)</label>
-                                <input type="number" min="0" max="100" id="update-progress-pct" placeholder="e.g. 75" 
-                                    class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 font-semibold text-white focus:outline-none focus:border-fedex-orange">
-                            </div>
-                        </div>
-
-                        <!-- Description Notes -->
-                        <div>
-                            <label class="block font-bold text-slate-300 uppercase mb-1">Activity Description & Dispatch Notes</label>
-                            <textarea id="update-description" rows="3" required placeholder="e.g. Package scan completed at main distribution terminal..." 
-                                class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 font-semibold text-white focus:outline-none focus:border-fedex-orange"></textarea>
-                        </div>
-
-                        <button type="submit" class="w-full py-4 bg-fedex-orange hover:bg-orange-600 text-white font-black rounded-xl shadow-lg transition-all flex items-center justify-center space-x-2 text-sm border border-orange-400/30">
-                            <i class="fa-solid fa-plus-circle"></i>
-                            <span>Append Checkpoint Scan to History</span>
-                        </button>
-                    </form>
-                </div>
-
-            </div>
-
-        </section>
-
-    </main>
-
-    <!-- Footer -->
-    <footer class="bg-slate-950 text-slate-500 py-8 border-t border-slate-800/80 mt-12 text-xs">
-        <div class="max-w-7xl mx-auto px-4 text-center sm:flex sm:justify-between sm:items-center space-y-4 sm:space-y-0">
-            <div class="flex items-center justify-center space-x-2">
-                <span class="font-extrabold text-white text-sm">ExpressTrack Logistics Global</span>
-                <span>• Logistics Operations Control</span>
-            </div>
-            <p>© 2026 ExpressTrack Express Services. Demo Global Package Tracking System.</p>
-        </div>
-    </footer>
-
-    <!-- JavaScript Application Engine -->
-    <script>
-        // Initial Pre-loaded Demo Packages
-        const initialPackages = {
-            'FX-984720192-US': {
-                id: 'FX-984720192-US',
-                carrier: 'ExpressTrack Air Priority',
-                service: 'Overnight Direct Express',
-                status: 'In Transit',
-                isPaused: false,
-                progress: 65,
-                sender: 'Apex Tech Corp',
-                recipient: 'John Doe, NY',
-                weight: '12.4 lbs / 5.6 kg',
-                origin: { name: 'Memphis Hub, TN', lat: 35.1495, lng: -90.0490 },
-                destination: { name: 'New York, NY', lat: 40.7128, lng: -74.0060 },
-                estDelivery: 'Oct 24, 2026 by 4:30 PM',
-                events: [
-                    {
-                        id: 1,
-                        timestamp: '2026-10-24 08:30',
-                        location: 'Knoxville Sorting Hub, TN',
-                        status: 'In Transit',
-                        description: 'Package departed intermediate transit center.',
-                        lat: 35.9606,
-                        lng: -83.9207
-                    },
-                    {
-                        id: 2,
-                        timestamp: '2026-10-24 04:15',
-                        location: 'Memphis Sorting Hub, TN',
-                        status: 'Arrived at Facility',
-                        description: 'Processed through logistics distribution center.',
-                        lat: 35.1495,
-                        lng: -90.0490
-                    },
-                    {
-                        id: 3,
-                        timestamp: '2026-10-23 18:00',
-                        location: 'Memphis Pickup Center, TN',
-                        status: 'Picked Up',
-                        description: 'Shipment handed over by sender.',
-                        lat: 35.1495,
-                        lng: -90.0490
-                    },
-                    {
-                        id: 4,
-                        timestamp: '2026-10-23 14:00',
-                        location: 'Memphis, TN',
-                        status: 'Label Created',
-                        description: 'Shipping label created and order processed.',
-                        lat: 35.1495,
-                        lng: -90.0490
-                    }
-                ]
-            },
-            'FX-102938475-US': {
-                id: 'FX-102938475-US',
-                carrier: 'ExpressTrack Ground Direct',
-                service: 'Standard Freight Express',
-                status: 'On Hold / Paused',
-                isPaused: true,
-                progress: 40,
-                sender: 'Midwest Supply Co',
-                recipient: 'Sarah Miller, FL',
-                weight: '28.0 lbs / 12.7 kg',
-                origin: { name: 'Chicago Regional Hub, IL', lat: 41.8781, lng: -87.6298 },
-                destination: { name: 'Miami, FL', lat: 25.7617, lng: -80.1918 },
-                estDelivery: 'Oct 26, 2026 by 7:00 PM',
-                events: [
-                    {
-                        id: 1,
-                        timestamp: '2026-10-24 09:00',
-                        location: 'Atlanta Gateway, GA',
-                        status: 'On Hold / Paused',
-                        description: 'Shipment manually held by logistics controller due to weather inspection hold.',
-                        lat: 33.7490,
-                        lng: -84.3880
-                    },
-                    {
-                        id: 2,
-                        timestamp: '2026-10-23 21:00',
-                        location: 'Chicago Hub, IL',
-                        status: 'Departed Facility',
-                        description: 'Departed origin logistics terminal.',
-                        lat: 41.8781,
-                        lng: -87.6298
-                    }
-                ]
-            },
-            'FX-552109841-US': {
-                id: 'FX-552109841-US',
-                carrier: 'ExpressTrack Local Air',
-                service: 'Same-Day Priority Direct',
-                status: 'Delivered',
-                isPaused: false,
-                progress: 100,
-                sender: 'Silicon Valley Labs',
-                recipient: 'David Smith, SF',
-                weight: '4.2 lbs / 1.9 kg',
-                origin: { name: 'Los Angeles Hub, CA', lat: 34.0522, lng: -118.2437 },
-                destination: { name: 'San Francisco, CA', lat: 37.7749, lng: -122.4194 },
-                estDelivery: 'Delivered Today at 2:15 PM',
-                events: [
-                    {
-                        id: 1,
-                        timestamp: '2026-10-24 14:15',
-                        location: 'San Francisco, CA',
-                        status: 'Delivered',
-                        description: 'Package delivered to front desk / recipient signature acquired.',
-                        lat: 37.7749,
-                        lng: -122.4194
-                    },
-                    {
-                        id: 2,
-                        timestamp: '2026-10-24 08:00',
-                        location: 'San Francisco Bay Facility, CA',
-                        status: 'Out for Delivery',
-                        description: 'Loaded on courier vehicle for final destination.',
-                        lat: 37.7749,
-                        lng: -122.4194
-                    }
-                ]
-            }
-        };
-
-        // State Engine
-        let packages = {};
-        let currentActiveTrackingId = 'FX-984720192-US';
-        let map = null;
-        let routePolyline = null;
-        let markers = [];
-        let simulationInterval = null;
-
-        // On Load Entrypoint
-        window.onload = function() {
-            loadPackagesFromStorage();
-            initializeDefaultTimeInputs();
-            renderAdminPackageSelect();
-            initMap();
-            displayTrackingInfo(currentActiveTrackingId);
-        };
-
-        // Storage Operations
-        function loadPackagesFromStorage() {
-            const saved = localStorage.getItem('expresstrack_data_v2');
-            if (saved) {
-                try {
-                    packages = JSON.parse(saved);
-                } catch(e) {
-                    packages = initialPackages;
-                }
-            } else {
-                packages = initialPackages;
-                savePackagesToStorage();
-            }
-        }
-
-        function savePackagesToStorage() {
-            localStorage.setItem('expresstrack_data_v2', JSON.stringify(packages));
-        }
-
-        // Initialize Leaflet Map
-        function initMap() {
-            map = L.map('map', {
-                zoomControl: true,
-                scrollWheelZoom: false
-            }).setView([38.0, -96.0], 4);
-
-            // Dark Matter Tile Layer for sleek corporate look
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-                attribution: '&copy; OpenStreetMap contributors & CartoDB'
-            }).addTo(map);
-        }
-
-        // Switch Navigation Tabs
-        function switchTab(tabName) {
-            const trackingView = document.getElementById('tracking-view');
-            const adminView = document.getElementById('admin-view');
-            const navTrackingBtn = document.getElementById('nav-tracking-btn');
-            const navAdminBtn = document.getElementById('nav-admin-btn');
-
-            if (tabName === 'tracking') {
-                trackingView.classList.remove('hidden');
-                adminView.classList.add('hidden');
-
-                navTrackingBtn.className = "px-4 py-2 text-xs sm:text-sm font-bold rounded-lg transition-all flex items-center space-x-2 bg-fedex-orange text-white shadow-md";
-                navAdminBtn.className = "px-4 py-2 text-xs sm:text-sm font-bold rounded-lg transition-all flex items-center space-x-2 text-purple-200 hover:text-white hover:bg-purple-800/40";
-
-                setTimeout(() => { if (map) map.invalidateSize(); }, 200);
-
-            } else if (tabName === 'admin') {
-                trackingView.classList.add('hidden');
-                adminView.classList.remove('hidden');
-
-                navAdminBtn.className = "px-4 py-2 text-xs sm:text-sm font-bold rounded-lg transition-all flex items-center space-x-2 bg-fedex-orange text-white shadow-md";
-                navTrackingBtn.className = "px-4 py-2 text-xs sm:text-sm font-bold rounded-lg transition-all flex items-center space-x-2 text-purple-200 hover:text-white hover:bg-purple-800/40";
-
-                onAdminSelectPackage();
-            }
-        }
-
-        // Handle Tracking Form Search
-        function handleSearch(e) {
-            e.preventDefault();
-            const inputVal = document.getElementById('tracking-input').value.trim().toUpperCase();
-            if (inputVal) {
-                displayTrackingInfo(inputVal);
-            }
-        }
-
-        function loadDemoCode(code) {
-            document.getElementById('tracking-input').value = code;
-            displayTrackingInfo(code);
-        }
-
-        // Render Active Package View
-        function displayTrackingInfo(trackingId) {
-            currentActiveTrackingId = trackingId;
-            const pkg = packages[trackingId];
-
-            const detailsCard = document.getElementById('shipment-details-card');
-            const notFoundCard = document.getElementById('not-found-card');
-
-            if (!pkg) {
-                detailsCard.classList.add('hidden');
-                notFoundCard.classList.remove('hidden');
-                return;
-            }
-
-            notFoundCard.classList.add('hidden');
-            detailsCard.classList.remove('hidden');
-
-            // Render Header Texts
-            document.getElementById('display-tracking-id').innerText = pkg.id;
-            document.getElementById('display-carrier').innerText = pkg.carrier;
-            document.getElementById('display-service').innerText = pkg.service;
-            document.getElementById('display-est-delivery').innerText = pkg.estDelivery;
-            document.getElementById('display-sender').innerText = pkg.sender || 'Sender Express';
-            document.getElementById('display-recipient').innerText = pkg.recipient || pkg.destination.name;
-            document.getElementById('display-weight').innerText = pkg.weight || '10.0 lbs';
-
-            // Banner Alert
-            const statusBanner = document.getElementById('status-banner');
-            const statusBannerText = document.getElementById('status-banner-text');
-            const statusBannerIcon = document.getElementById('status-banner-icon');
-            const statusBadge = document.getElementById('display-status-badge');
-            const liveIndicator = document.getElementById('live-moving-indicator');
-
-            if (pkg.isPaused) {
-                statusBanner.className = "bg-red-950/80 border border-red-500/50 text-white px-6 py-3.5 rounded-2xl flex flex-wrap items-center justify-between text-xs sm:text-sm font-semibold shadow-lg gap-2";
-                statusBannerText.innerText = "SHIPMENT EXCEPTION / HOLD: Package movement manually paused by dispatch controller.";
-                statusBannerIcon.className = "fa-solid fa-circle-pause text-red-400 text-lg";
-
-                statusBadge.className = "px-3.5 py-1 text-xs font-black rounded-full bg-red-500/20 border border-red-500/40 text-red-400 uppercase tracking-wider";
-                statusBadge.innerText = "Paused / On Hold";
-
-                liveIndicator.className = "inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-red-500/20 text-red-400 border border-red-500/30";
-                liveIndicator.innerHTML = '<span class="w-2 h-2 mr-1.5 bg-red-400 rounded-full"></span> Movement Paused';
-
-            } else if (pkg.status === 'Delivered') {
-                statusBanner.className = "bg-emerald-950/80 border border-emerald-500/50 text-white px-6 py-3.5 rounded-2xl flex flex-wrap items-center justify-between text-xs sm:text-sm font-semibold shadow-lg gap-2";
-                statusBannerText.innerText = "DELIVERY COMPLETE: Package successfully delivered to recipient.";
-                statusBannerIcon.className = "fa-solid fa-circle-check text-emerald-400 text-lg";
-
-                statusBadge.className = "px-3.5 py-1 text-xs font-black rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 uppercase tracking-wider";
-                statusBadge.innerText = "Delivered";
-
-                liveIndicator.className = "inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
-                liveIndicator.innerHTML = '<span class="w-2 h-2 mr-1.5 bg-emerald-400 rounded-full"></span> Delivered';
-
-            } else {
-                statusBanner.className = "bg-fedex-darkPurple border border-purple-500/40 text-white px-6 py-3.5 rounded-2xl flex flex-wrap items-center justify-between text-xs sm:text-sm font-semibold shadow-lg gap-2";
-                statusBannerText.innerText = "IN TRANSIT: Package moving along scheduled air-ground route.";
-                statusBannerIcon.className = "fa-solid fa-truck-fast text-fedex-orange text-lg";
-
-                statusBadge.className = "px-3.5 py-1 text-xs font-black rounded-full bg-purple-500/20 border border-purple-500/40 text-purple-300 uppercase tracking-wider";
-                statusBadge.innerText = pkg.status || "In Transit";
-
-                liveIndicator.className = "inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
-                liveIndicator.innerHTML = '<span class="w-2 h-2 mr-1.5 bg-emerald-400 rounded-full animate-pulse"></span> Active Moving';
-            }
-
-            // Progress Bar Fill & Text
-            document.getElementById('origin-city-label').innerText = pkg.origin.name;
-            document.getElementById('dest-city-label').innerText = pkg.destination.name;
-            document.getElementById('progress-percent-label').innerText = `${pkg.progress}% Route Progress`;
-            document.getElementById('progress-bar-fill').style.width = `${pkg.progress}%`;
-
-            // Stepper Status Updates
-            const step3Text = document.getElementById('step-3-text');
-            const step3Icon = document.getElementById('step-3-icon');
-            const step4Icon = document.getElementById('step-4-icon');
-
-            if (pkg.isPaused) {
-                step3Text.innerText = "On Hold";
-                step3Icon.className = "w-7 h-7 rounded-full bg-red-600 text-white flex items-center justify-center mb-1 text-xs shadow border border-red-400/40";
-                step3Icon.innerHTML = '<i class="fa-solid fa-pause"></i>';
-            } else if (pkg.progress >= 100) {
-                step3Text.innerText = "Out for Delivery";
-                step3Icon.className = "w-7 h-7 rounded-full bg-fedex-purple text-white flex items-center justify-center mb-1 text-xs shadow border border-purple-400/30";
-                step3Icon.innerHTML = '✓';
-
-                step4Icon.className = "w-7 h-7 rounded-full bg-emerald-500 text-white flex items-center justify-center mb-1 text-xs shadow border border-emerald-400/30";
-                step4Icon.innerHTML = '<i class="fa-solid fa-check"></i>';
-            } else {
-                step3Text.innerText = "Out for Delivery";
-                step3Icon.className = "w-7 h-7 rounded-full bg-fedex-orange text-white flex items-center justify-center mb-1 text-xs shadow border border-orange-400/30";
-                step3Icon.innerHTML = '<i class="fa-solid fa-truck"></i>';
-
-                step4Icon.className = "w-7 h-7 rounded-full bg-slate-700 text-slate-400 flex items-center justify-center mb-1 text-xs";
-                step4Icon.innerHTML = '<i class="fa-solid fa-house"></i>';
-            }
-
-            // Timeline Checkpoints History
-            renderTimeline(pkg.events);
-
-            // Update Map Pins & Interpolated Route
-            updateMapRoute(pkg);
-        }
-
-        // Render Checkpoint Timeline
-        function renderTimeline(events) {
-            const container = document.getElementById('timeline-container');
-            document.getElementById('event-count-badge').innerText = `${events.length} Checkpoints`;
-            container.innerHTML = '';
-
-            events.forEach((event, index) => {
-                const isLatest = index === 0;
-                
-                let iconClass = 'fa-location-dot';
-                let iconBg = 'bg-fedex-purple text-white border border-purple-400/40';
-                
-                if (event.status.includes('Paused') || event.status.includes('Hold')) {
-                    iconClass = 'fa-circle-pause';
-                    iconBg = 'bg-red-600 text-white border border-red-400/40';
-                } else if (event.status.includes('Delivered')) {
-                    iconClass = 'fa-house-circle-check';
-                    iconBg = 'bg-emerald-600 text-white border border-emerald-400/40';
-                } else if (event.status.includes('Out for Delivery')) {
-                    iconClass = 'fa-truck-ramp-box';
-                    iconBg = 'bg-fedex-orange text-white border border-orange-400/40';
-                }
-
-                const itemHtml = `
-                    <div class="relative flex items-start space-x-3.5">
-                        ${index !== events.length - 1 ? '<div class="absolute left-3.5 top-7 -bottom-5 w-0.5 bg-slate-700/80"></div>' : ''}
-                        
-                        <div class="relative z-10 w-7 h-7 rounded-full ${iconBg} flex items-center justify-center text-[10px] shadow flex-shrink-0 mt-0.5">
-                            <i class="fa-solid ${iconClass}"></i>
-                        </div>
-
-                        <div class="flex-grow bg-slate-900/90 p-3.5 rounded-xl border ${isLatest ? 'border-fedex-orange/60 bg-slate-900 ring-1 ring-fedex-orange/30' : 'border-slate-700/60'}">
-                            <div class="flex items-center justify-between mb-1">
-                                <span class="text-xs font-black ${isLatest ? 'text-fedex-orange' : 'text-slate-200'}">${event.status}</span>
-                                <span class="text-[10px] font-bold text-slate-400">${event.timestamp}</span>
-                            </div>
-                            <p class="text-xs font-bold text-white">${event.location}</p>
-                            <p class="text-xs text-slate-400 mt-1">${event.description}</p>
-                        </div>
-                    </div>
-                `;
-                container.insertAdjacentHTML('beforeend', itemHtml);
-            });
-        }
-
-        // Update Map Route & Positions
-        function updateMapRoute(pkg) {
-            if (!map) return;
-
-            markers.forEach(m => map.removeLayer(m));
-            markers = [];
-            if (routePolyline) map.removeLayer(routePolyline);
-
-            const origin = pkg.origin;
-            const dest = pkg.destination;
-
-            // Interpolated coordinates along route line
-            const currentLat = origin.lat + (dest.lat - origin.lat) * (pkg.progress / 100);
-            const currentLng = origin.lng + (dest.lng - origin.lng) * (pkg.progress / 100);
-
-            const latestLocName = pkg.events.length > 0 ? pkg.events[0].location : 'En Route';
-            document.getElementById('map-current-loc-name').innerText = latestLocName;
-
-            // 1. Origin Marker
-            const originMarker = L.circleMarker([origin.lat, origin.lng], {
-                radius: 7,
-                fillColor: '#4D148C',
-                color: '#ffffff',
-                weight: 2,
-                fillOpacity: 1
-            }).addTo(map).bindPopup(`<b>Origin:</b> ${origin.name}`);
-            markers.push(originMarker);
-
-            // 2. Destination Marker
-            const destMarker = L.circleMarker([dest.lat, dest.lng], {
-                radius: 7,
-                fillColor: '#64748B',
-                color: '#ffffff',
-                weight: 2,
-                fillOpacity: 1
-            }).addTo(map).bindPopup(`<b>Destination:</b> ${dest.name}`);
-            markers.push(destMarker);
-
-            // 3. Current Dynamic Moving Pin
-            const pulseClass = pkg.isPaused ? 'pulse-ring paused' : 'pulse-ring';
-            const iconColor = pkg.isPaused ? 'text-red-500' : 'text-fedex-orange';
-
-            const currentCustomIcon = L.divIcon({
-                className: 'custom-pulse-marker',
-                html: `
-                    <div class="${pulseClass}"></div>
-                    <i class="fa-solid fa-truck-fast ${iconColor} text-lg relative z-10 drop-shadow"></i>
-                `,
-                iconSize: [30, 30],
-                iconAnchor: [15, 15]
-            });
-
-            const currentMarker = L.marker([currentLat, currentLng], { icon: currentCustomIcon })
-                .addTo(map)
-                .bindPopup(`<b>Current Telemetry Pin:</b> ${latestLocName}<br>State: ${pkg.isPaused ? 'PAUSED' : pkg.status}`);
-            markers.push(currentMarker);
-
-            // Polyline
-            const latlngs = [
-                [origin.lat, origin.lng],
-                [currentLat, currentLng],
-                [dest.lat, dest.lng]
-            ];
-
-            routePolyline = L.polyline(latlngs, {
-                color: pkg.isPaused ? '#EF4444' : '#FF6600',
-                weight: 4,
-                dashArray: pkg.isPaused ? '6, 6' : null,
-                opacity: 0.9
-            }).addTo(map);
-
-            const group = L.featureGroup(markers);
-            map.fitBounds(group.getBounds().pad(0.2));
-        }
-
-        // ==========================================
-        // ADMIN DISPATCH FUNCTIONS
-        // ==========================================
-
-        function renderAdminPackageSelect() {
-            const select = document.getElementById('admin-package-select');
-            select.innerHTML = '';
-
-            Object.keys(packages).forEach(id => {
-                const pkg = packages[id];
-                const option = document.createElement('option');
-                option.value = id;
-                option.innerText = `${pkg.id} - ${pkg.destination.name} [${pkg.isPaused ? 'PAUSED' : pkg.status}]`;
-                if (id === currentActiveTrackingId) option.selected = true;
-                select.appendChild(option);
-            });
-        }
-
-        function onAdminSelectPackage() {
-            const select = document.getElementById('admin-package-select');
-            currentActiveTrackingId = select.value;
-            const pkg = packages[currentActiveTrackingId];
-
-            if (!pkg) return;
-
-            // Update UI State for Pause Button
-            const pauseBtn = document.getElementById('admin-pause-btn');
-            const currentStatusText = document.getElementById('admin-current-status-text');
-            const pauseIndicator = document.getElementById('admin-pause-indicator');
-
-            if (pkg.isPaused) {
-                currentStatusText.innerText = "PAUSED / ON HOLD";
-                currentStatusText.className = "text-sm font-extrabold text-red-400";
-                pauseIndicator.className = "w-3 h-3 rounded-full bg-red-500 animate-ping";
-
-                pauseBtn.className = "w-full py-3 px-4 rounded-xl font-bold text-xs sm:text-sm shadow-md transition-all flex items-center justify-center space-x-2 bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-400/30";
-                pauseBtn.innerHTML = '<i class="fa-solid fa-play"></i><span>RESUME SHIPMENT MOVEMENT</span>';
-            } else {
-                currentStatusText.innerText = `${pkg.status.toUpperCase()} (Active)`;
-                currentStatusText.className = "text-sm font-extrabold text-emerald-400";
-                pauseIndicator.className = "w-3 h-3 rounded-full bg-emerald-400 animate-pulse";
-
-                pauseBtn.className = "w-full py-3 px-4 rounded-xl font-bold text-xs sm:text-sm shadow-md transition-all flex items-center justify-center space-x-2 bg-red-600 hover:bg-red-700 text-white border border-red-400/30";
-                pauseBtn.innerHTML = '<i class="fa-solid fa-circle-pause"></i><span>PAUSE SHIPMENT (PUT ON HOLD)</span>';
-            }
-
-            // Sync Manifest Editor Form
-            document.getElementById('edit-recipient').value = pkg.recipient || pkg.destination.name;
-            document.getElementById('edit-sender').value = pkg.sender || 'Sender Express';
-            document.getElementById('edit-est-delivery').value = pkg.estDelivery;
-            document.getElementById('edit-weight').value = pkg.weight || '10 lbs';
-
-            // Sync Manual Scan Form
-            document.getElementById('update-progress-pct').value = pkg.progress;
-            document.getElementById('update-location-name').value = pkg.events.length > 0 ? pkg.events[0].location : '';
-        }
-
-        // Toggle Pause Shipment Action
-        function togglePausePackage() {
-            const pkg = packages[currentActiveTrackingId];
-            if (!pkg) return;
-
-            pkg.isPaused = !pkg.isPaused;
-            const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 16);
-
-            if (pkg.isPaused) {
-                pkg.status = 'On Hold / Paused';
-                pkg.events.unshift({
-                    id: Date.now(),
-                    timestamp: timestamp,
-                    location: pkg.events.length > 0 ? pkg.events[0].location : pkg.origin.name,
-                    status: 'On Hold / Paused',
-                    description: 'Shipment movement manually paused by logistics dispatch controller.'
-                });
-                showToast(`Package ${pkg.id} put ON HOLD.`, 'warning');
-            } else {
-                pkg.status = 'In Transit';
-                pkg.events.unshift({
-                    id: Date.now(),
-                    timestamp: timestamp,
-                    location: pkg.events.length > 0 ? pkg.events[0].location : pkg.origin.name,
-                    status: 'In Transit',
-                    description: 'Hold released. Package movement resumed towards destination.'
-                });
-                showToast(`Package ${pkg.id} RESUMED movement.`, 'success');
-            }
-
-            savePackagesToStorage();
-            renderAdminPackageSelect();
-            onAdminSelectPackage();
-            displayTrackingInfo(currentActiveTrackingId);
-        }
-
-        // Edit Manifest Details
-        function handleManifestEdit(e) {
-            e.preventDefault();
-            const pkg = packages[currentActiveTrackingId];
-            if (!pkg) return;
-
-            pkg.recipient = document.getElementById('edit-recipient').value.trim();
-            pkg.sender = document.getElementById('edit-sender').value.trim();
-            pkg.estDelivery = document.getElementById('edit-est-delivery').value.trim();
-            pkg.weight = document.getElementById('edit-weight').value.trim();
-
-            savePackagesToStorage();
-            showToast(`Manifest updated for ${pkg.id}`, 'success');
-            displayTrackingInfo(currentActiveTrackingId);
-        }
-
-        // Manual Location Scan Update
-        function handleManualUpdate(e) {
-            e.preventDefault();
-            const pkg = packages[currentActiveTrackingId];
-            if (!pkg) return;
-
-            const statusType = document.getElementById('update-status-type').value;
-            const locationName = document.getElementById('update-location-name').value.trim();
-            const customTimestamp = document.getElementById('update-timestamp').value.replace('T', ' ');
-            const progressPct = parseInt(document.getElementById('update-progress-pct').value) || pkg.progress;
-            const description = document.getElementById('update-description').value.trim();
-            const latVal = parseFloat(document.getElementById('update-lat').value);
-            const lngVal = parseFloat(document.getElementById('update-lng').value);
-
-            pkg.status = statusType;
-            pkg.progress = Math.min(100, Math.max(0, progressPct));
-
-            const newEvent = {
-                id: Date.now(),
-                timestamp: customTimestamp,
-                location: locationName,
-                status: statusType,
-                description: description,
-                lat: !isNaN(latVal) ? latVal : null,
-                lng: !isNaN(lngVal) ? lngVal : null
-            };
-
-            pkg.events.unshift(newEvent);
-
-            if (statusType === 'Delivered') {
-                pkg.progress = 100;
-                pkg.isPaused = false;
-            }
-
-            savePackagesToStorage();
-            showToast(`New scan checkpoint added for ${pkg.id}!`, 'success');
-
-            renderAdminPackageSelect();
-            onAdminSelectPackage();
-            displayTrackingInfo(currentActiveTrackingId);
-        }
-
-        // Automated GPS Route Telemetry Simulator
-        function toggleSimulator() {
-            const btn = document.getElementById('sim-toggle-btn');
-            const badge = document.getElementById('sim-status-badge');
-
-            if (simulationInterval) {
-                clearInterval(simulationInterval);
-                simulationInterval = null;
-
-                badge.innerText = "OFF";
-                badge.className = "text-[10px] font-bold text-purple-300 bg-purple-900 px-2 py-0.5 rounded-md border border-purple-500/30";
-                btn.className = "w-full py-2.5 px-4 rounded-xl font-bold text-xs bg-fedex-purple text-white hover:bg-purple-900 transition-colors flex items-center justify-center space-x-2 border border-purple-400/30";
-                btn.innerHTML = '<i class="fa-solid fa-play"></i><span>Start Route Movement Simulator</span>';
-                showToast("Automated GPS simulator stopped.", "info");
-
-            } else {
-                badge.innerText = "ACTIVE LIVE SIMULATION";
-                badge.className = "text-[10px] font-bold text-emerald-300 bg-emerald-950 border border-emerald-500/40 px-2 py-0.5 rounded-md animate-pulse";
-                btn.className = "w-full py-2.5 px-4 rounded-xl font-bold text-xs bg-red-600 text-white hover:bg-red-700 transition-colors flex items-center justify-center space-x-2 border border-red-400/30";
-                btn.innerHTML = '<i class="fa-solid fa-stop"></i><span>Stop Movement Simulator</span>';
-                showToast("Automated GPS simulator running (+5% progress / 4s)", "success");
-
-                simulationInterval = setInterval(() => {
-                    const pkg = packages[currentActiveTrackingId];
-                    if (!pkg || pkg.isPaused || pkg.progress >= 100) return;
-
-                    pkg.progress = Math.min(100, pkg.progress + 5);
-
-                    if (pkg.progress === 100 && pkg.status !== 'Delivered') {
-                        pkg.status = 'Delivered';
-                        pkg.events.unshift({
-                            id: Date.now(),
-                            timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
-                            location: pkg.destination.name,
-                            status: 'Delivered',
-                            description: 'Automated GPS simulation: Reached final delivery destination.'
-                        });
-                    }
-
-                    savePackagesToStorage();
-                    displayTrackingInfo(currentActiveTrackingId);
-                }, 4000);
-            }
-        }
-
-        // Prompt to register new package
-        function createNewPackagePrompt() {
-            const newId = 'FX-' + Math.floor(100000000 + Math.random() * 900000000) + '-US';
-            const originName = prompt("Enter Origin City (e.g., Dallas Hub, TX):", "Dallas Hub, TX");
-            if (!originName) return;
-
-            const destName = prompt("Enter Destination City (e.g., Seattle, WA):", "Seattle, WA");
-            if (!destName) return;
-
-            packages[newId] = {
-                id: newId,
-                carrier: 'ExpressTrack Air Priority',
-                service: 'Standard Freight Express',
-                status: 'In Transit',
-                isPaused: false,
-                progress: 15,
-                sender: 'Global Dispatch Terminal',
-                recipient: 'Customer Delivery Office',
-                weight: '8.5 lbs / 3.8 kg',
-                origin: { name: originName, lat: 32.7767, lng: -96.7970 },
-                destination: { name: destName, lat: 47.6062, lng: -122.3321 },
-                estDelivery: 'Oct 28, 2026 by 5:00 PM',
-                events: [
-                    {
-                        id: Date.now(),
-                        timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
-                        location: originName,
-                        status: 'Picked Up',
-                        description: 'Shipment created and injected into global transit network.'
-                    }
-                ]
-            };
-
-            savePackagesToStorage();
-            renderAdminPackageSelect();
-            displayTrackingInfo(newId);
-            showToast(`Registered New Package: ${newId}`, 'success');
-        }
-
-        function copyTrackingLink() {
-            const dummyUrl = window.location.href.split('?')[0] + '?track=' + currentActiveTrackingId;
-            const tempInput = document.createElement('input');
-            document.body.appendChild(tempInput);
-            tempInput.value = dummyUrl;
-            tempInput.select();
-            document.execCommand('copy');
-            document.body.removeChild(tempInput);
-
-            showToast("Tracking link copied to clipboard!", "success");
-        }
-
-        function initializeDefaultTimeInputs() {
-            const now = new Date();
-            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-            document.getElementById('update-timestamp').value = now.toISOString().slice(0, 16);
-        }
-
-        function showToast(message, type = 'info') {
-            const container = document.getElementById('toast-container');
-            const toast = document.createElement('div');
-
-            let bgClass = 'bg-slate-800 text-white border border-slate-700';
-            if (type === 'success') bgClass = 'bg-emerald-900 border border-emerald-500 text-white';
-            if (type === 'warning') bgClass = 'bg-red-900 border border-red-500 text-white';
-            if (type === 'info') bgClass = 'bg-fedex-purple border border-purple-500 text-white';
-
-            toast.className = `${bgClass} px-4 py-3 rounded-xl shadow-2xl text-xs font-bold flex items-center space-x-2 transition-all transform duration-300 translate-y-2 opacity-0`;
-            toast.innerHTML = `<i class="fa-solid fa-circle-info"></i><span>${message}</span>`;
-
-            container.appendChild(toast);
-
-            setTimeout(() => {
-                toast.classList.remove('translate-y-2', 'opacity-0');
-            }, 50);
-
-            setTimeout(() => {
-                toast.classList.add('opacity-0');
-                setTimeout(() => toast.remove(), 300);
-            }, 3500);
-        }
-        function openPaymentModal() {
-  document.getElementById('paymentModal').style.display = 'flex';
-}
-
-function closePaymentModal() {
-  document.getElementById('paymentModal').style.display = 'none';
-}
-
-function switchTab(tab) {
-  if (tab === 'crypto') {
-    document.getElementById('cryptoTabContent').style.display = 'block';
-    document.getElementById('cardTabContent').style.display = 'none';
-    document.getElementById('btnCryptoTab').style.background = '#3b82f6';
-    document.getElementById('btnCryptoTab').style.color = '#fff';
-    document.getElementById('btnCardTab').style.background = '#1e293b';
-    document.getElementById('btnCardTab').style.color = '#94a3b8';
-  } else {
-    document.getElementById('cryptoTabContent').style.display = 'none';
-    document.getElementById('cardTabContent').style.display = 'block';
-    document.getElementById('btnCardTab').style.background = '#10b981';
-    document.getElementById('btnCardTab').style.color = '#fff';
-    document.getElementById('btnCryptoTab').style.background = '#1e293b';
-    document.getElementById('btnCryptoTab').style.color = '#94a3b8';
-  }
-}
-
-function copyWallet(elementId) {
-  const text = document.getElementById(elementId).innerText;
-  navigator.clipboard.writeText(text);
-  alert('Wallet address copied to clipboard!');
-}
-
-    </script>
-    <!-- MULTI-CURRENCY & CRYPTO CHECKOUT MODAL -->
-<div id="paymentModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 9999; justify-content: center; align-items: center; padding: 20px;">
-  <div style="background: #0f172a; border: 1px solid #334155; border-radius: 12px; max-width: 450px; width: 100%; padding: 25px; color: #fff; position: relative;">
-    
-    <button onclick="closePaymentModal()" style="position: absolute; top: 15px; right: 15px; background: none; border: none; color: #94a3b8; font-size: 1.2rem; cursor: pointer;">✖</button>
-    
-    <h3 style="margin-top: 0; color: #38bdf8;">Complete Payment</h3>
-    <p style="font-size: 0.9rem; color: #94a3b8; margin-bottom: 20px;">Select your preferred payment method below to complete clearance.</p>
-
-    <!-- TAB BUTTONS -->
-    <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-      <button onclick="switchTab('crypto')" id="btnCryptoTab" style="flex: 1; padding: 10px; background: #3b82f6; color: #fff; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">₿ Crypto</button>
-      <button onclick="switchTab('card')" id="btnCardTab" style="flex: 1; padding: 10px; background: #1e293b; color: #94a3b8; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">💳 Card / Gateway</button>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans">
+
+  <!-- NAVIGATION BAR -->
+  <header class="bg-slate-950 border-b border-slate-800 sticky top-0 z-50">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+      <div class="flex items-center gap-2 cursor-pointer" onclick="switchView('tracking')">
+        <i class="fa-solid fa-truck-fast text-orange-500 text-2xl"></i>
+        <span class="font-extrabold text-xl tracking-tight text-white">Express<span class="text-orange-500">Track</span></span>
+      </div>
+      <div class="flex gap-4">
+        <button id="btnNavTracking" onclick="switchView('tracking')" class="text-sm font-semibold text-orange-500 hover:text-orange-400 py-1">Track Package</button>
+        <button id="btnNavAdmin" onclick="switchView('admin')" class="text-sm font-semibold text-slate-400 hover:text-white py-1">Dispatch Controller</button>
+      </div>
     </div>
+  </header>
 
-    <!-- CRYPTO TAB -->
-    <div id="cryptoTabContent">
-      <div style="background: #1e293b; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
-        <span style="font-size: 0.8rem; color: #94a3b8;">Bitcoin (BTC) Wallet:</span>
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px;">
-          <small id="btcWallet" style="font-family: monospace; color: #f59e0b; word-break: break-all;">bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh</small>
-          <button onclick="copyWallet('btcWallet')" style="background: #334155; color: #fff; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer;">Copy</button>
+  <!-- MAIN CONTAINER -->
+  <main class="flex-grow max-w-5xl mx-auto w-full p-4 sm:p-6">
+
+    <!-- VIEW 1: PUBLIC TRACKING SEARCH -->
+    <section id="trackingView" class="space-y-6">
+      <div class="text-center max-w-xl mx-auto space-y-2">
+        <h1 class="text-2xl sm:text-3xl font-extrabold text-white">Real-Time Cargo & Package Tracking</h1>
+        <p class="text-slate-400 text-sm">Enter your shipment reference number to view live route updates and customs status.</p>
+      </div>
+
+      <!-- SEARCH BOX -->
+      <div class="bg-slate-800/80 p-3 rounded-xl border border-slate-700 shadow-xl flex gap-2">
+        <input type="text" id="trackingInput" placeholder="e.g. FX-984720192-US" class="w-full bg-slate-900 text-white px-4 py-3 rounded-lg border border-slate-700 focus:outline-none focus:border-orange-500">
+        <button onclick="performSearch()" class="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-lg font-bold flex items-center gap-2 transition">
+          <i class="fa-solid fa-magnifying-glass"></i> Track
+        </button>
+      </div>
+
+      <div class="text-xs text-slate-400 text-center">
+        <span>Demo Tracking Number: </span>
+        <button onclick="loadDemo('FX-984720192-US')" class="text-orange-400 underline font-mono">FX-984720192-US</button>
+      </div>
+
+      <!-- TRACKING RESULT CARD -->
+      <div id="trackingResult" class="hidden space-y-6 bg-slate-800/50 p-6 rounded-2xl border border-slate-700/80">
+        
+        <!-- HEADER STATUS -->
+        <div class="flex flex-wrap justify-between items-center gap-4 border-b border-slate-700 pb-4">
+          <div>
+            <span class="text-xs uppercase tracking-wider text-slate-400">Tracking Number</span>
+            <h2 id="resTrackingId" class="text-xl font-bold font-mono text-orange-400">---</h2>
+          </div>
+          <div>
+            <span id="resStatusBadge" class="px-3 py-1 text-xs font-bold rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">IN TRANSIT</span>
+          </div>
+        </div>
+
+        <!-- LOCATION HEADER -->
+        <div class="grid grid-cols-2 gap-4 bg-slate-900/60 p-4 rounded-xl border border-slate-800">
+          <div>
+            <span class="text-xs text-slate-400 uppercase font-semibold">Current Location</span>
+            <p id="resCurrentLoc" class="text-base font-bold text-sky-400">---</p>
+          </div>
+          <div>
+            <span class="text-xs text-slate-400 uppercase font-semibold">Final Destination</span>
+            <p id="resFinalDest" class="text-base font-bold text-slate-200">---</p>
+          </div>
+        </div>
+
+        <!-- DYNAMIC CUSTOMS / ACTION FEE ALERT BANNER -->
+        <div id="actionAlertBanner" class="hidden bg-red-950/40 border border-red-500/60 rounded-xl p-4 space-y-3">
+          <div class="flex items-start gap-3">
+            <span class="text-2xl">⚠️</span>
+            <div>
+              <h3 class="font-bold text-red-300 text-base">Action Required: Hold at Clearance Hub</h3>
+              <p id="resFeeNote" class="text-xs text-slate-300 mt-1">Package requires settlement for import tariff & inspection fees.</p>
+            </div>
+          </div>
+          <div class="pt-2 border-t border-red-500/30 flex justify-between items-center">
+            <div>
+              <span class="text-xs text-red-300 uppercase block">Fee Amount Due:</span>
+              <span id="resFeeAmount" class="text-lg font-extrabold text-white">$150.00 USD</span>
+            </div>
+            <button onclick="openPaymentModal()" class="bg-red-600 hover:bg-red-500 text-white font-bold px-4 py-2 rounded-lg text-sm transition">
+              Pay Clearance Fee 💳
+            </button>
+          </div>
+        </div>
+
+        <!-- LIVE ROUTE MAP -->
+        <div>
+          <h3 class="text-sm font-semibold text-slate-300 mb-2">Live Map Route</h3>
+          <div id="map"></div>
+        </div>
+
+        <!-- TIMELINE LOGS -->
+        <div>
+          <h3 class="text-sm font-semibold text-slate-300 mb-3">Shipment Progress Log</h3>
+          <div id="resTimeline" class="space-y-4 border-l-2 border-slate-700 pl-4 ml-2"></div>
         </div>
       </div>
-      <p style="font-size: 0.8rem; color: #94a3b8;">Transfer the exact fee amount and contact support with your hash.</p>
-    </div>
+    </section>
 
-    <!-- CARD TAB -->
-    <div id="cardTabContent" style="display: none;">
-      <p style="font-size: 0.9rem; color: #cbd5e1;">Proceed to secure online gateway for instant card settlement:</p>
-      <a href="https://paystack.com/pay/YOUR_CUSTOM_PAY_LINK" target="_blank" style="display: block; text-align: center; background: #10b981; color: white; padding: 12px; border-radius: 8px; text-decoration: none; font-weight: bold; margin-top: 15px;">
-        Pay via Secure Gateway 🔒
-      </a>
-    </div>
+    <!-- VIEW 2: DISPATCH CONTROLLER / ADMIN PANEL -->
+    <section id="adminView" class="hidden space-y-6">
+      <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 space-y-6">
+        <h2 class="text-xl font-bold text-white flex items-center gap-2"><i class="fa-solid fa-sliders text-orange-500"></i> Dispatch Management Center</h2>
 
+        <!-- CREATE SHIPMENT FORM -->
+        <div class="space-y-3 bg-slate-900 p-4 rounded-xl border border-slate-800">
+          <h3 class="text-sm font-bold text-slate-300">1. Create New Shipment</h3>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <input type="text" id="admNewId" placeholder="Tracking ID (e.g. FX-102938-NG)" class="bg-slate-800 text-white text-xs p-2.5 rounded border border-slate-700">
+            <input type="text" id="admNewOrigin" placeholder="Origin (e.g. London, UK)" class="bg-slate-800 text-white text-xs p-2.5 rounded border border-slate-700">
+            <input type="text" id="admNewDest" placeholder="Final Destination (e.g. Lagos, NG)" class="bg-slate-800 text-white text-xs p-2.5 rounded border border-slate-700">
+            <input type="text" id="admNewRecipient" placeholder="Recipient Name" class="bg-slate-800 text-white text-xs p-2.5 rounded border border-slate-700">
+          </div>
+          <button onclick="createNewShipment()" class="w-full bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold py-2.5 rounded transition">Create Shipment</button>
+        </div>
+
+        <!-- UPDATE EVENT FORM -->
+        <div class="space-y-3 bg-slate-900 p-4 rounded-xl border border-slate-800">
+          <h3 class="text-sm font-bold text-slate-300">2. Log Checkpoint Update & Setup Gateway Fee</h3>
+          
+          <select id="admSelectPkg" onchange="loadPkgAdminData()" class="w-full bg-slate-800 text-white text-xs p-2.5 rounded border border-slate-700">
+            <option value="">Select Target Package...</option>
+          </select>
+
+          <input type="text" id="admUpdateLoc" placeholder="Checkpoint Location (e.g. Heathrow Customs)" class="w-full bg-slate-800 text-white text-xs p-2.5 rounded border border-slate-700">
+
+          <select id="admUpdateStatus" class="w-full bg-slate-800 text-white text-xs p-2.5 rounded border border-slate-700">
+            <option value="In Transit">In Transit</option>
+            <option value="Held at Customs">Held at Customs (Action Required)</option>
+            <option value="Out for Delivery">Out for Delivery</option>
+            <option value="Delivered">Delivered</option>
+          </select>
+
+          <!-- FEE & GATEWAY LINK TOGGLE -->
+          <div class="flex items-center gap-2">
+            <input type="checkbox" id="admRequireFee" onchange="toggleFeeInputsAdmin()" class="rounded">
+            <label for="admRequireFee" class="text-xs text-slate-300 font-semibold">Require Customs / Clearance Payment?</label>
+          </div>
+
+          <div id="admFeeContainer" class="hidden space-y-2 pl-4 border-l-2 border-orange-500">
+            <div class="flex gap-2">
+              <select id="admFeeCurr" class="bg-slate-800 text-white text-xs p-2 rounded border border-slate-700">
+                <option value="$">$ USD</option>
+                <option value="€">€ EUR</option>
+                <option value="£">£ GBP</option>
+                <option value="BTC">BTC</option>
+                <option value="USDT">USDT</option>
+              </select>
+              <input type="number" id="admFeeAmount" placeholder="Amount (e.g. 150)" class="w-full bg-slate-800 text-white text-xs p-2 rounded border border-slate-700">
+            </div>
+            <input type="text" id="admFeeNote" placeholder="Payment Reason (e.g. Import Customs Duty)" class="w-full bg-slate-800 text-white text-xs p-2 rounded border border-slate-700">
+            <input type="text" id="admGatewayLink" placeholder="Custom Payment Gateway URL (e.g. Paystack/Flutterwave link)" class="w-full bg-slate-800 text-white text-xs p-2 rounded border border-slate-700">
+          </div>
+
+          <button onclick="logEventUpdate()" class="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold py-2.5 rounded transition">Push Update to Public View</button>
+        </div>
+
+        <!-- PAYMENT PROOF APPROVAL QUEUE -->
+        <div class="space-y-3 bg-slate-900 p-4 rounded-xl border border-slate-800">
+          <h3 class="text-sm font-bold text-amber-400"><i class="fa-solid fa-receipt"></i> Customer Payment Proof Approvals</h3>
+          <div id="adminApprovalList" class="space-y-2 text-xs">
+            <p class="text-slate-400">No pending payment proofs submitted yet.</p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MULTI-CURRENCY & CRYPTO CHECKOUT MODAL WITH SCREENSHOT UPLOAD -->
+  <div id="paymentModal" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-6 space-y-4 relative text-white max-h-[90vh] overflow-y-auto">
+      <button onclick="closePaymentModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+
+      <h3 class="text-lg font-bold text-sky-400">Complete Clearance Settlement</h3>
+      <p class="text-xs text-slate-400">Pay through your preferred method below, then submit your payment proof for release.</p>
+
+      <div class="flex gap-2 border-b border-slate-800 pb-2">
+        <button id="btnTabCrypto" onclick="switchModalTab('crypto')" class="flex-1 py-2 bg-blue-600 text-white font-bold text-xs rounded">₿ Crypto Wallet</button>
+        <button id="btnTabCard" onclick="switchModalTab('card')" class="flex-1 py-2 bg-slate-800 text-slate-400 font-bold text-xs rounded">💳 Gateway Card</button>
+      </div>
+
+      <!-- CRYPTO CONTENT -->
+      <div id="tabContentCrypto" class="space-y-3">
+        <div class="bg-slate-800 p-3 rounded-lg space-y-1">
+          <span class="text-xs text-slate-400 font-semibold">Bitcoin (BTC) Wallet:</span>
+          <div class="flex justify-between items-center gap-2">
+            <span id="btcAddress" class="text-xs font-mono text-amber-400 truncate">bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh</span>
+            <button onclick="copyWalletText('btcAddress')" class="bg-slate-700 text-xs px-2 py-1 rounded hover:bg-slate-600">Copy</button>
+          </div>
+        </div>
+
+        <div class="bg-slate-800 p-3 rounded-lg space-y-1">
+          <span class="text-xs text-slate-400 font-semibold">USDT (TRC20) Wallet:</span>
+          <div class="flex justify-between items-center gap-2">
+            <span id="usdtAddress" class="text-xs font-mono text-emerald-400 truncate">TYDzs2ZF938475hnx89347598347593847</span>
+            <button onclick="copyWalletText('usdtAddress')" class="bg-slate-700 text-xs px-2 py-1 rounded hover:bg-slate-600">Copy</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- CARD CONTENT -->
+      <div id="tabContentCard" class="hidden space-y-3">
+        <p class="text-xs text-slate-300">Click below to pay via secure online gateway:</p>
+        <a id="modalGatewayLink" href="https://paystack.com" target="_blank" class="block w-full bg-emerald-600 hover:bg-emerald-500 text-center font-bold text-xs py-3 rounded-lg transition">Proceed to Secure Gateway 🔒</a>
+      </div>
+
+      <!-- SUBMIT PAYMENT PROOF SECTION -->
+      <div class="pt-4 border-t border-slate-800 space-y-3">
+        <h4 class="text-xs font-bold text-orange-400 uppercase">Submit Payment Confirmation</h4>
+        <input type="text" id="payProofSender" placeholder="Your Name / Email" class="w-full bg-slate-800 text-white text-xs p-2.5 rounded border border-slate-700">
+        <input type="text" id="payProofRef" placeholder="Transaction Hash or Payment Reference ID" class="w-full bg-slate-800 text-white text-xs p-2.5 rounded border border-slate-700">
+        
+        <div class="space-y-1">
+          <label class="text-[11px] text-slate-400">Upload Payment Screenshot:</label>
+          <input type="file" id="payProofFile" accept="image/*" class="w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-slate-800 file:text-white hover:file:bg-slate-700">
+        </div>
+
+        <button onclick="submitPaymentProof()" class="w-full bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold py-2.5 rounded transition">Submit Proof for Admin Approval</button>
+      </div>
+
+    </div>
   </div>
-</div>
 
+  <!-- JAVASCRIPT APPLICATION LOGIC -->
+  <script>
+    let shipments = JSON.parse(localStorage.getItem('expresstrack_data')) || {
+      "FX-984720192-US": {
+        origin: "London, Heathrow (UK)",
+        destination: "Lagos, Nigeria",
+        currentLoc: "Lagos International Airport Customs",
+        status: "Held at Customs",
+        recipient: "John Doe",
+        feeRequired: true,
+        feeAmount: "150.00",
+        feeCurr: "$",
+        feeNote: "Customs Import Clearance & Inspection Duty",
+        gatewayUrl: "https://paystack.com",
+        proofSubmitted: false,
+        coords: [6.5774, 3.3210],
+        timeline: [
+          { time: "2026-03-28 10:15", location: "Lagos International Airport Customs", note: "Package flagged for mandatory clearance inspection." }
+        ]
+      }
+    };
+
+    let activeTrackingId = null;
+    let leafletMap = null;
+    let mapMarker = null;
+
+    function saveState() {
+      localStorage.setItem('expresstrack_data', JSON.stringify(shipments));
+      populateAdminSelect();
+      renderAdminApprovals();
+    }
+
+    function switchView(view) {
+      if (view === 'tracking') {
+        document.getElementById('trackingView').classList.remove('hidden');
+        document.getElementById('adminView').classList.add('hidden');
+        document.getElementById('btnNavTracking').classList.add('text-orange-500');
+        document.getElementById('btnNavAdmin').classList.remove('text-orange-500');
+      } else {
+        document.getElementById('trackingView').classList.add('hidden');
+        document.getElementById('adminView').classList.remove('hidden');
+        document.getElementById('btnNavAdmin').classList.add('text-orange-500');
+        document.getElementById('btnNavTracking').classList.remove('text-orange-500');
+        populateAdminSelect();
+        renderAdminApprovals();
+      }
+    }
+
+    function loadDemo(code) {
+      document.getElementById('trackingInput').value = code;
+      performSearch();
+    }
+
+    function performSearch() {
+      const code = document.getElementById('trackingInput').value.trim();
+      const pkg = shipments[code];
+
+      if (!pkg) {
+        alert('Tracking number not found. Try demo code: FX-984720192-US');
+        return;
+      }
+
+      activeTrackingId = code;
+      document.getElementById('trackingResult').classList.remove('hidden');
+      document.getElementById('resTrackingId').innerText = code;
+      document.getElementById('resCurrentLoc').innerText = pkg.currentLoc;
+      document.getElementById('resFinalDest').innerText = pkg.destination;
+      document.getElementById('resStatusBadge').innerText = pkg.status.toUpperCase();
+
+      // ACTION FEE BANNER
+      const banner = document.getElementById('actionAlertBanner');
+      if (pkg.feeRequired) {
+        banner.classList.remove('hidden');
+        document.getElementById('resFeeAmount').innerText = (pkg.feeCurr || '$') + pkg.feeAmount;
+        document.getElementById('resFeeNote').innerText = pkg.proofSubmitted 
+          ? "✅ Payment proof submitted! Awaiting admin verification & release." 
+          : (pkg.feeNote || "Clearance payment pending.");
+      } else {
+        banner.classList.add('hidden');
+      }
+
+      // TIMELINE
+      const tl = document.getElementById('resTimeline');
+      tl.innerHTML = '';
+      pkg.timeline.forEach(item => {
+        tl.innerHTML += `
+          <div class="relative pl-2">
+            <span class="text-xs text-orange-400 font-mono font-bold block">${item.time}</span>
+            <span class="text-sm font-bold text-white">${item.location}</span>
+            <p class="text-xs text-slate-400">${item.note}</p>
+          </div>
+        `;
+      });
+
+      // LEAFLET MAP
+      if (!leafletMap) {
+        leafletMap = L.map('map').setView(pkg.coords || [6.5244, 3.3792], 7);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(leafletMap);
+        mapMarker = L.marker(pkg.coords || [6.5244, 3.3792]).addTo(leafletMap);
+      } else {
+        leafletMap.setView(pkg.coords || [6.5244, 3.3792], 7);
+        mapMarker.setLatLng(pkg.coords || [6.5244, 3.3792]);
+      }
+      setTimeout(() => { leafletMap.invalidateSize(); }, 200);
+    }
+
+    // ADMIN CONTROLS
+    function toggleFeeInputsAdmin() {
+      const isChecked = document.getElementById('admRequireFee').checked;
+      document.getElementById('admFeeContainer').classList.toggle('hidden', !isChecked);
+    }
+
+    function populateAdminSelect() {
+      const select = document.getElementById('admSelectPkg');
+      select.innerHTML = '<option value="">Select Target Package...</option>';
+      Object.keys(shipments).forEach(id => {
+        select.innerHTML += `<option value="${id}">${id} - (${shipments[id].destination})</option>`;
+      });
+    }
+
+    function loadPkgAdminData() {
+      const id = document.getElementById('admSelectPkg').value;
+      if (!id) return;
+      const pkg = shipments[id];
+      document.getElementById('admUpdateLoc').value = pkg.currentLoc;
+      document.getElementById('admUpdateStatus').value = pkg.status;
+      document.getElementById('admRequireFee').checked = pkg.feeRequired;
+      document.getElementById('admFeeContainer').classList.toggle('hidden', !pkg.feeRequired);
+      if (pkg.feeRequired) {
+        document.getElementById('admFeeCurr').value = pkg.feeCurr || '$';
+        document.getElementById('admFeeAmount').value = pkg.feeAmount || '';
+        document.getElementById('admFeeNote').value = pkg.feeNote || '';
+        document.getElementById('admGatewayLink').value = pkg.gatewayUrl || '';
+      }
+    }
+
+    function createNewShipment() {
+      const id = document.getElementById('admNewId').value.trim();
+      const origin = document.getElementById('admNewOrigin').value.trim();
+      const dest = document.getElementById('admNewDest').value.trim();
+
+      if (!id || !origin || !dest) return alert('Please fill in Tracking ID, Origin, and Destination');
+
+      shipments[id] = {
+        origin: origin,
+        destination: dest,
+        currentLoc: origin,
+        status: "In Transit",
+        recipient: document.getElementById('admNewRecipient').value || "Valued Customer",
+        feeRequired: false,
+        feeAmount: "0.00",
+        feeCurr: "$",
+        feeNote: "",
+        gatewayUrl: "",
+        proofSubmitted: false,
+        coords: [6.5244, 3.3792],
+        timeline: [{ time: new Date().toISOString().replace('T', ' ').substring(0, 16), location: origin, note: "Shipment manifest created." }]
+      };
+
+      saveState();
+      alert('Shipment created successfully!');
+    }
+
+    function logEventUpdate() {
+      const id = document.getElementById('admSelectPkg').value;
+      const loc = document.getElementById('admUpdateLoc').value.trim();
+      const status = document.getElementById('admUpdateStatus').value;
+      const feeReq = document.getElementById('admRequireFee').checked;
+
+      if (!id || !loc) return alert('Please select a package and type a location');
+
+      const pkg = shipments[id];
+      pkg.currentLoc = loc;
+      pkg.status = status;
+      pkg.feeRequired = feeReq;
+
+      if (feeReq) {
+        pkg.feeAmount = document.getElementById('admFeeAmount').value || "100.00";
+        pkg.feeCurr = document.getElementById('admFeeCurr').value;
+        pkg.feeNote = document.getElementById('admFeeNote').value || "Customs clearance charge";
+        pkg.gatewayUrl = document.getElementById('admGatewayLink').value || "https://paystack.com";
+      }
+
+      pkg.timeline.unshift({
+        time: new Date().toISOString().replace('T', ' ').substring(0, 16),
+        location: loc,
+        note: feeReq ? `Held at ${loc}. ${pkg.feeNote}` : `Reached checkpoint at ${loc}`
+      });
+
+      saveState();
+      alert('Package updated successfully!');
+    }
+
+    // APPROVAL QUEUE
+    function renderAdminApprovals() {
+      const container = document.getElementById('adminApprovalList');
+      container.innerHTML = '';
+      let hasPending = false;
+
+      Object.keys(shipments).forEach(id => {
+        const pkg = shipments[id];
+        if (pkg.feeRequired && pkg.proofSubmitted && !pkg.feeApproved) {
+          hasPending = true;
+          container.innerHTML += `
+            <div class="bg-slate-800 p-3 rounded-lg border border-slate-700 flex justify-between items-center">
+              <div>
+                <strong class="text-orange-400 font-mono">${id}</strong>
+                <p class="text-slate-300">Payer: ${pkg.payerName || 'N/A'} | Ref: ${pkg.payerRef || 'N/A'}</p>
+                <span class="text-[10px] text-sky-400">Amount: ${pkg.feeCurr}${pkg.feeAmount}</span>
+              </div>
+              <button onclick="approvePayment('${id}')" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-1.5 rounded text-xs transition">Approve & Resume</button>
+            </div>
+          `;
+        }
+      });
+
+      if (!hasPending) {
+        container.innerHTML = '<p class="text-slate-400">No pending payment proofs awaiting approval.</p>';
+      }
+    }
+
+    function approvePayment(id) {
+      const pkg = shipments[id];
+      pkg.feeRequired = false;
+      pkg.feeApproved = true;
+      pkg.proofSubmitted = false;
+      pkg.status = "In Transit";
+      pkg.currentLoc = "Cleared Customs - En Route";
+      pkg.timeline.unshift({
+        time: new Date().toISOString().replace('T', ' ').substring(0, 16),
+        location: pkg.currentLoc,
+        note: "Payment verified & approved by Dispatch. Shipment resumed."
+      });
+      saveState();
+      alert(`Payment for ${id} approved! Package status set back to In Transit.`);
+    }
+
+    // MODAL & PAYMENT PROOF SUBMISSION
+    function openPaymentModal() {
+      if (!activeTrackingId) return;
+      const pkg = shipments[activeTrackingId];
+      if (pkg && pkg.gatewayUrl) {
+        document.getElementById('modalGatewayLink').href = pkg.gatewayUrl;
+      }
+      document.getElementById('paymentModal').classList.remove('hidden');
+    }
+
+    function closePaymentModal() { document.getElementById('paymentModal').classList.add('hidden'); }
+
+    function switchModalTab(tab) {
+      if (tab === 'crypto') {
+        document.getElementById('tabContentCrypto').classList.remove('hidden');
+        document.getElementById('tabContentCard').classList.add('hidden');
+        document.getElementById('btnTabCrypto').className = 'flex-1 py-2 bg-blue-600 text-white font-bold text-xs rounded';
+        document.getElementById('btnTabCard').className = 'flex-1 py-2 bg-slate-800 text-slate-400 font-bold text-xs rounded';
+      } else {
+        document.getElementById('tabContentCrypto').classList.add('hidden');
+        document.getElementById('tabContentCard').classList.remove('hidden');
+        document.getElementById('btnTabCard').className = 'flex-1 py-2 bg-emerald-600 text-white font-bold text-xs rounded';
+        document.getElementById('btnTabCrypto').className = 'flex-1 py-2 bg-slate-800 text-slate-400 font-bold text-xs rounded';
+      }
+    }
+
+    function copyWalletText(id) {
+      navigator.clipboard.writeText(document.getElementById(id).innerText);
+      alert('Wallet address copied to clipboard!');
+    }
+
+    function submitPaymentProof() {
+      const name = document.getElementById('payProofSender').value.trim();
+      const ref = document.getElementById('payProofRef').value.trim();
+      const fileInput = document.getElementById('payProofFile').files[0];
+
+      if (!name || !ref) {
+        alert('Please fill in your name and transaction reference.');
+        return;
+      }
+
+      const pkg = shipments[activeTrackingId];
+      if (pkg) {
+        pkg.proofSubmitted = true;
+        pkg.payerName = name;
+        pkg.payerRef = ref;
+        pkg.payerHasImage = fileInput ? true : false;
+        saveState();
+        alert('Payment proof submitted successfully! Our dispatch team will verify and release your package shortly.');
+        closePaymentModal();
+        performSearch();
+      }
+    }
+
+    populateAdminSelect();
+    renderAdminApprovals();
+  </script>
 </body>
-    <!-- CUSTOMS FEE ALERT BANNER -->
-<div id="actionAlertBox" style="background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; border-radius: 10px; padding: 16px; margin: 15px 0;">
-  <div style="display: flex; align-items: center; gap: 12px;">
-    <span style="font-size: 1.8rem;">⚠️</span>
-    <div>
-      <h4 style="margin: 0; color: #fca5a5; font-size: 1.05rem;">Action Required: Customs Payment Pending</h4>
-      <p id="actionNoteText" style="margin: 4px 0 0 0; font-size: 0.85rem; color: #cbd5e1;">
-        Package held at local clearance office due to unpaid inspection & clearance charges.
-      </p>
-    </div>
-  </div>
-  
-  <div style="margin-top: 14px; padding-top: 10px; border-top: 1px dashed rgba(239, 68, 68, 0.4); display: flex; justify-content: space-between; align-items: center;">
-    <div>
-      <span style="font-size: 0.75rem; color: #fca5a5; text-transform: uppercase;">Amount Due:</span>
-      <strong id="feeAmountDisplay" style="font-size: 1.2rem; color: #fff; display: block;">$150.00 USD</strong>
-    </div>
-    <button onclick="openPaymentModal()" style="background: #ef4444; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-weight: bold; font-size: 0.85rem; cursor: pointer;">
-      Pay Fee Now 💳
-    </button>
-  </div>
-</div>
-
 </html>
