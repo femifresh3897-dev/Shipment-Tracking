@@ -87,7 +87,6 @@
           
           <div class="relative w-full bg-slate-200 h-3 rounded-full overflow-visible">
             <div id="resProgressBar" class="bg-orange-600 h-3 rounded-full transition-all duration-500" style="width: 0%;"></div>
-            <!-- Moving Truck Icon -->
             <div id="resTruckIcon" class="absolute -top-3 transform -translate-x-1/2 text-blue-950 text-lg transition-all duration-500" style="left: 0%;">
               <i class="fa-solid fa-truck-fast"></i>
             </div>
@@ -176,18 +175,31 @@
         <button onclick="admCreatePackage()" class="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-2 rounded transition">Initialize Shipment</button>
       </div>
 
-      <!-- EDIT & UPDATE CHECKPOINT / CHARGES / PROGRESS -->
+      <!-- EDIT & UPDATE CHECKPOINT / AVAILABILITY TOGGLE -->
       <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3 text-xs">
-        <h3 class="font-bold text-slate-800">2. Update Checkpoint, Route Progress & Fee Channels</h3>
+        <h3 class="font-bold text-slate-800">2. Update Checkpoint, Public Availability & Fee Channels</h3>
         <select id="admSelectPkg" onchange="admLoadPackageData()" class="w-full bg-white border border-slate-300 p-2 rounded">
           <option value="">Select Target Package...</option>
         </select>
         
+        <!-- TRACKING AVAILABILITY TOGGLE -->
+        <div class="bg-blue-50 p-3 rounded border border-blue-200 flex items-center justify-between">
+          <div>
+            <span class="font-bold text-blue-950 block">Public Tracking Status</span>
+            <span class="text-[10px] text-slate-500">Disable to make this tracking number unavailable to search.</span>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" id="admIsActiveToggle" class="sr-only peer" checked>
+            <div class="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+            <span class="ml-2 text-xs font-bold text-slate-700 peer-checked:text-emerald-700" id="statusLabelText">Active</span>
+          </label>
+        </div>
+
         <input type="text" id="admLocInput" placeholder="Current Checkpoint Location (e.g. Customs Hub)" class="w-full bg-white border border-slate-300 p-2 rounded">
         
         <div class="grid grid-cols-2 gap-2">
           <div>
-            <label class="font-bold text-slate-600 block mb-1">Status</label>
+            <label class="font-bold text-slate-600 block mb-1">Status Badge</label>
             <select id="admStatusInput" class="w-full bg-white border border-slate-300 p-2 rounded">
               <option value="In Transit">In Transit</option>
               <option value="Held at Customs">Held at Customs (Action Required)</option>
@@ -277,12 +289,10 @@
       <h3 class="text-base font-black text-blue-950 flex items-center gap-2"><i class="fa-solid fa-shield-halved text-orange-600"></i> Secure Fee Settlement Portal</h3>
       <p class="text-slate-500">Select your preferred payment channel below to clear charges and release your package hold.</p>
 
-      <!-- DYNAMIC CLICKABLE PAYMENT CHANNELS -->
       <div id="modalPaymentChannels" class="space-y-3">
         <!-- Rendered dynamically -->
       </div>
 
-      <!-- SUBMIT PROOF FORM WITH SCREENSHOT UPLOAD -->
       <div class="border-t border-slate-200 pt-3 space-y-2">
         <span class="font-bold text-slate-800 uppercase text-[10px] block">Submit Payment Proof & Screenshot</span>
         <input type="text" id="proofSender" placeholder="Your Full Name / Email" class="w-full border border-slate-300 p-2.5 rounded">
@@ -304,14 +314,13 @@
 
   <!-- JAVASCRIPT APPLICATION LOGIC -->
   <script>
-    // AUTH CREDENTIALS
     const ADMIN_USER = "Admin";
     const ADMIN_PASS = "Femifresh12345";
     let isAdminAuthenticated = false;
 
-    // DEFAULT INITIAL DATABASE
     let defaultShipments = {
       "GX-984720192-US": {
+        isActive: true, // NEW: controls whether it can be tracked
         origin: "London, UK",
         destination: "Lagos, Nigeria",
         currentLoc: "Lagos Airport Customs Hub",
@@ -366,7 +375,6 @@
       }
     }
 
-    // ADMIN AUTHENTICATION
     function openAdminLoginModal() {
       if (isAdminAuthenticated) {
         switchView('admin');
@@ -399,13 +407,15 @@
       switchView('tracking');
     }
 
-    // SEARCH & TRACKING
+    // SEARCH & TRACKING WITH AVAILABILITY CHECK
     function performSearch() {
       const code = document.getElementById('trackingInput').value.trim();
       const pkg = shipments[code];
 
-      if (!pkg) {
+      // If package doesn't exist OR is explicitly deactivated by admin
+      if (!pkg || pkg.isActive === false) {
         alert('Tracking code not found in global database. Please check reference.');
+        document.getElementById('trackingResultCard').classList.add('hidden');
         return;
       }
 
@@ -416,7 +426,6 @@
       document.getElementById('resBadge').innerText = pkg.status.toUpperCase();
       document.getElementById('resRoute').innerText = pkg.origin + " ➔ " + pkg.destination;
 
-      // ANIMATED PROGRESS BAR & MOVING TRUCK
       const pct = Math.min(100, Math.max(0, pkg.progressPct || 0));
       document.getElementById('resOriginText').innerText = pkg.origin;
       document.getElementById('resDestText').innerText = pkg.destination;
@@ -424,7 +433,6 @@
       document.getElementById('resProgressBar').style.width = pct + "%";
       document.getElementById('resTruckIcon').style.left = pct + "%";
 
-      // FEE ALERT BANNER
       const alertBox = document.getElementById('feeAlertBox');
       if (pkg.feeRequired) {
         alertBox.classList.remove('hidden');
@@ -435,7 +443,6 @@
         alertBox.classList.add('hidden');
       }
 
-      // TIMELINE
       const tl = document.getElementById('resTimeline');
       tl.innerHTML = '';
       pkg.timeline.forEach(item => {
@@ -449,13 +456,13 @@
       });
     }
 
-    // ADMIN MANAGEMENT CONTROLS
     function admPopulateSelect() {
       const sel = document.getElementById('admSelectPkg');
       if (!sel) return;
       sel.innerHTML = '<option value="">Select Target Package...</option>';
       Object.keys(shipments).forEach(id => {
-        sel.innerHTML += `<option value="${id}">${id} (${shipments[id].destination})</option>`;
+        const activeMarker = shipments[id].isActive === false ? ' [DISABLED]' : '';
+        sel.innerHTML += `<option value="${id}">${id} (${shipments[id].destination})${activeMarker}</option>`;
       });
     }
 
@@ -493,6 +500,11 @@
       const id = document.getElementById('admSelectPkg').value;
       if (!id) return;
       const pkg = shipments[id];
+      
+      const isActive = pkg.isActive !== false;
+      document.getElementById('admIsActiveToggle').checked = isActive;
+      document.getElementById('statusLabelText').innerText = isActive ? "Active" : "Disabled";
+
       document.getElementById('admLocInput').value = pkg.currentLoc;
       document.getElementById('admStatusInput').value = pkg.status;
       document.getElementById('admProgressInput').value = pkg.progressPct || 0;
@@ -520,6 +532,7 @@
       if (!id || !origin || !dest) return alert('Fill out all shipment fields.');
 
       shipments[id] = {
+        isActive: true,
         origin: origin,
         destination: dest,
         currentLoc: origin,
@@ -539,10 +552,12 @@
       const status = document.getElementById('admStatusInput').value;
       const progress = parseInt(document.getElementById('admProgressInput').value) || 0;
       const feeReq = document.getElementById('admFeeToggle').checked;
+      const isActive = document.getElementById('admIsActiveToggle').checked;
 
       if (!id || !loc) return alert('Select package and checkpoint location.');
 
       const pkg = shipments[id];
+      pkg.isActive = isActive;
       pkg.currentLoc = loc;
       pkg.status = status;
       pkg.progressPct = progress;
@@ -626,7 +641,6 @@
       switchView('tracking');
     }
 
-    // CLICKABLE PAYMENT MODAL GENERATOR
     function openPaymentModal() {
       if (!activeCode) return;
       const pkg = shipments[activeCode];
@@ -697,6 +711,11 @@
         performSearch();
       }
     }
+
+    // Dynamic label updater for toggle
+    document.getElementById('admIsActiveToggle').addEventListener('change', function() {
+      document.getElementById('statusLabelText').innerText = this.checked ? "Active" : "Disabled";
+    });
   </script>
 </body>
 </html>
