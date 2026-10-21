@@ -6,38 +6,49 @@
   <title>Global Express Logistics & Cargo Tracking</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
-    #map { height: 320px; width: 100%; border-radius: 0.5rem; }
+    @keyframes pulseGlow {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.7; transform: scale(1.08); }
+    }
+    .animate-pulse-glow { animation: pulseGlow 2s infinite ease-in-out; }
+    
+    @keyframes moveVehicle {
+      0% { transform: translateY(0px); }
+      50% { transform: translateY(-3px); }
+      100% { transform: translateY(0px); }
+    }
+    .animate-vehicle { animation: moveVehicle 1.2s infinite ease-in-out; }
   </style>
 </head>
-<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col font-sans">
+<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col font-sans">
 
-  <!-- TOP TRUST BANNER -->
-  <div class="bg-blue-950 text-slate-200 text-xs py-2 px-4">
+  <!-- TOP TRUST BARNER -->
+  <div class="bg-blue-950 text-slate-200 text-xs py-2 px-4 shadow-inner">
     <div class="max-w-6xl mx-auto flex justify-between items-center">
-      <span><i class="fa-solid fa-shield-halved text-orange-400 mr-1"></i> Secure Global Logistics & Certified Customs Brokerage</span>
-      <div class="hidden sm:flex gap-4">
-        <span><i class="fa-solid fa-headset mr-1"></i> Support: 24/7 Active</span>
-        <span><i class="fa-solid fa-globe mr-1"></i> Worldwide Logistics Network</span>
+      <span class="flex items-center gap-1.5"><i class="fa-solid fa-shield-halved text-orange-400"></i> <strong class="hidden sm:inline">Global Express</strong> Certified Customs Brokerage & International Freight</span>
+      <div class="flex gap-4">
+        <span><i class="fa-solid fa-headset text-slate-400 mr-1"></i> Support 24/7</span>
+        <span class="hidden md:inline"><i class="fa-solid fa-globe text-slate-400 mr-1"></i> Worldwide Coverage</span>
       </div>
     </div>
   </div>
 
-  <!-- NAVIGATION -->
-  <header class="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
+  <!-- MAIN NAVIGATION -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
     <div class="max-w-6xl mx-auto px-4 py-3.5 flex justify-between items-center">
-      <div class="flex items-center gap-2 cursor-pointer" onclick="switchView('tracking')">
-        <div class="bg-blue-900 text-white font-black p-2 rounded tracking-tighter text-lg">EX</div>
+      <div class="flex items-center gap-2.5 cursor-pointer" onclick="switchView('tracking')">
+        <div class="bg-blue-900 text-white font-black p-2 rounded-lg tracking-tighter text-lg shadow-sm">EX</div>
         <span class="font-black text-xl tracking-tight text-blue-950">GLOBAL<span class="text-orange-600">EXPRESS</span></span>
       </div>
-      <div class="flex items-center gap-4 text-sm font-semibold">
-        <button onclick="switchView('tracking')" class="text-blue-900 hover:text-orange-600">Tracking</button>
-        <button onclick="switchView('request')" class="text-slate-600 hover:text-orange-600">Request Shipment</button>
-        <button onclick="switchView('auth')" class="text-slate-600 hover:text-orange-600">Client Login</button>
-        <button onclick="openAdminLoginModal()" class="bg-blue-900 text-white px-3 py-1.5 rounded hover:bg-blue-800 transition">Admin Portal 🔒</button>
-      </div>
+      <nav class="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm font-semibold">
+        <button onclick="switchView('tracking')" class="text-blue-900 hover:text-orange-600 px-2 py-1 rounded transition">Tracking</button>
+        <button onclick="switchView('request')" class="text-slate-600 hover:text-orange-600 px-2 py-1 rounded transition">Book Shipment</button>
+        <button onclick="switchView('auth')" class="text-slate-600 hover:text-orange-600 px-2 py-1 rounded transition">Client Login</button>
+        <button onclick="openAdminLoginModal()" class="bg-blue-900 hover:bg-blue-800 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+          <i class="fa-solid fa-lock"></i> Admin Portal
+        </button>
+      </nav>
     </div>
   </header>
 
@@ -46,180 +57,262 @@
 
     <!-- 1. PUBLIC TRACKING VIEW -->
     <section id="viewTracking" class="space-y-6">
-      <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
-        <h1 class="text-2xl font-black text-blue-950 tracking-tight">Global Tracking®</h1>
-        <p class="text-xs text-slate-500">Enter your master tracking code to view live delivery forecasts, carrier checkpoints, and clearance holds.</p>
+      
+      <!-- TRACKING INPUT CARD -->
+      <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+        <div class="space-y-1">
+          <h1 class="text-2xl font-black text-blue-950 tracking-tight">Track Your Package</h1>
+          <p class="text-xs text-slate-500">Enter your master tracking reference to inspect real-time progress, carrier checkpoints, and clearance holds.</p>
+        </div>
         
-        <div class="flex gap-2">
-          <input type="text" id="trackingInput" placeholder="e.g. GX-984720192-US" class="flex-1 bg-slate-50 border border-slate-300 px-4 py-3 rounded-lg text-sm font-mono focus:outline-none focus:border-blue-600">
-          <button onclick="performSearch()" class="bg-orange-600 hover:bg-orange-700 text-white px-6 py-3 rounded-lg font-bold text-sm transition">Track</button>
+        <div class="flex flex-col sm:flex-row gap-2">
+          <input type="text" id="trackingInput" placeholder="Enter Tracking ID (e.g., GX-984720192-US)" class="flex-1 bg-slate-50 border border-slate-300 px-4 py-3 rounded-xl text-sm font-mono font-semibold focus:outline-none focus:border-blue-700 focus:bg-white transition">
+          <button onclick="performSearch()" class="bg-orange-600 hover:bg-orange-700 text-white px-8 py-3 rounded-xl font-bold text-sm transition shadow-sm flex items-center justify-center gap-2">
+            <i class="fa-solid fa-magnifying-glass"></i> Track Package
+          </button>
         </div>
       </div>
 
       <!-- TRACKING RESULTS CARD -->
-      <div id="trackingResultCard" class="hidden bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden space-y-6 p-6">
+      <div id="trackingResultCard" class="hidden bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden space-y-6 p-6">
         
-        <!-- STATUS HEADER -->
+        <!-- HEADER STATUS & BADGE -->
         <div class="flex flex-wrap justify-between items-center border-b border-slate-100 pb-4 gap-4">
           <div>
-            <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Tracking Number</span>
-            <h2 id="resCode" class="text-xl font-mono font-black text-blue-950">---</h2>
+            <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Master Tracking Reference</span>
+            <h2 id="resCode" class="text-xl sm:text-2xl font-mono font-black text-blue-950">---</h2>
           </div>
           <div>
-            <span id="resBadge" class="px-3 py-1 text-xs font-bold rounded-full bg-blue-100 text-blue-800">IN TRANSIT</span>
+            <span id="resBadge" class="px-3.5 py-1.5 text-xs font-black rounded-full bg-blue-100 text-blue-800 tracking-wide uppercase">IN TRANSIT</span>
           </div>
         </div>
 
-        <!-- EXPECTED DELIVERY BOX -->
-        <div class="bg-sky-50 border-l-4 border-blue-900 p-4 rounded-r-xl flex flex-wrap justify-between items-center gap-4">
+        <!-- ROUTE & CURRENT CHECKPOINT SUMMARY -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200/80 text-xs">
           <div>
-            <span class="text-xs font-bold text-blue-900 uppercase block">Expected Delivery Schedule</span>
-            <span id="resExpected" class="text-lg font-black text-blue-950">SCHEDULED IN TRANSIT</span>
+            <span class="text-slate-400 font-bold uppercase text-[10px] block">Origin</span>
+            <span id="resOrigin" class="font-bold text-slate-800 text-sm">---</span>
           </div>
-          <div class="text-right">
-            <span class="text-xs text-slate-500 block">Current Checkpoint</span>
-            <span id="resCurrentLoc" class="text-sm font-bold text-orange-600">---</span>
+          <div>
+            <span class="text-slate-400 font-bold uppercase text-[10px] block">Current Location</span>
+            <span id="resCurrentLoc" class="font-bold text-orange-600 text-sm">---</span>
+          </div>
+          <div>
+            <span class="text-slate-400 font-bold uppercase text-[10px] block">Final Destination</span>
+            <span id="resDestination" class="font-bold text-slate-800 text-sm">---</span>
+          </div>
+        </div>
+
+        <!-- ANIMATED TRANSIT PROGRESS BAR WITH MOVING CARGO TRUCK -->
+        <div class="bg-slate-50 p-5 rounded-xl border border-slate-200 space-y-4">
+          <div class="flex justify-between items-center text-xs font-bold text-slate-600">
+            <span class="flex items-center gap-1.5"><i class="fa-solid fa-warehouse text-blue-900"></i> Origin Hub</span>
+            <span id="resProgressText" class="text-blue-950 font-extrabold font-mono">45% Completed</span>
+            <span class="flex items-center gap-1.5"><i class="fa-solid fa-flag-checkered text-emerald-600"></i> Destination</span>
+          </div>
+
+          <!-- PROGRESS TRACK CONTAINER -->
+          <div class="relative w-full bg-slate-200 h-4 rounded-full overflow-visible my-6">
+            <!-- FILL BAR -->
+            <div id="progressBarFill" class="bg-gradient-to-r from-blue-900 to-orange-500 h-full rounded-full transition-all duration-700 ease-out" style="width: 0%;"></div>
+            
+            <!-- MOVING VEHICLE SYMBOL -->
+            <div id="progressVehicle" class="absolute top-1/2 -translate-y-1/2 -ml-4 transition-all duration-700 ease-out animate-vehicle pointer-events-none" style="left: 0%;">
+              <div class="bg-orange-600 text-white w-9 h-9 rounded-full flex items-center justify-center shadow-lg border-2 border-white text-sm">
+                <i id="vehicleIcon" class="fa-solid fa-truck-fast"></i>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex justify-between text-[11px] text-slate-500 pt-1 font-semibold">
+            <span id="resOriginSub">Dispatch Origin</span>
+            <span id="resDestSub">Final Delivery</span>
           </div>
         </div>
 
         <!-- DYNAMIC EDITABLE CHARGES ALERT BANNER -->
-        <div id="feeAlertBox" class="hidden bg-amber-50 border border-amber-300 rounded-xl p-4 space-y-3">
+        <div id="feeAlertBox" class="hidden bg-amber-50 border border-amber-300 rounded-xl p-4 space-y-3 shadow-sm">
           <div class="flex items-start gap-3">
-            <i class="fa-solid fa-triangle-exclamation text-amber-600 text-xl mt-0.5"></i>
-            <div>
-              <h3 id="resFeeTitle" class="font-bold text-amber-900 text-sm">Action Required: Customs Inspection Fee</h3>
-              <p id="resFeeNote" class="text-xs text-amber-700 mt-0.5">Package held pending settlement of clearance charges.</p>
+            <i class="fa-solid fa-circle-exclamation text-amber-600 text-2xl mt-0.5 animate-pulse-glow"></i>
+            <div class="space-y-1">
+              <h3 id="resFeeTitle" class="font-bold text-amber-900 text-sm">Action Required: Clearance Fee Required</h3>
+              <p id="resFeeNote" class="text-xs text-amber-700">Package held pending settlement of clearance charges.</p>
             </div>
           </div>
-          <div class="pt-3 border-t border-amber-200 flex justify-between items-center">
+          <div class="pt-3 border-t border-amber-200/80 flex flex-wrap justify-between items-center gap-3">
             <div>
-              <span class="text-[10px] uppercase font-bold text-amber-800 block">Total Balance Due</span>
-              <span id="resFeeAmountDisplay" class="text-xl font-black text-blue-950">$150.00 USD</span>
+              <span class="text-[10px] uppercase font-bold text-amber-800 block">Total Settlement Balance</span>
+              <span id="resFeeAmountDisplay" class="text-xl font-black text-blue-950">$0.00 USD</span>
             </div>
-            <button onclick="openPaymentModal()" class="bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs px-4 py-2.5 rounded-lg transition shadow-sm">
-              Pay Charges Now 💳
+            <button onclick="openPaymentModal()" class="bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs px-5 py-2.5 rounded-lg transition shadow flex items-center gap-2">
+              <i class="fa-solid fa-wallet"></i> Pay Charges Now
             </button>
           </div>
         </div>
 
-        <!-- MAP VIEW -->
-        <div>
-          <h3 class="text-xs font-bold text-slate-500 uppercase mb-2">Transit Route Map</h3>
-          <div id="map"></div>
-        </div>
-
         <!-- TIMELINE HISTORY -->
-        <div>
-          <h3 class="text-xs font-bold text-slate-500 uppercase mb-3">Tracking History</h3>
+        <div class="space-y-3">
+          <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+            <i class="fa-solid fa-clock-rotate-left"></i> Carrier Tracking History
+          </h3>
           <div id="resTimeline" class="space-y-4 border-l-2 border-slate-200 pl-4 ml-2"></div>
         </div>
+
       </div>
     </section>
 
-    <!-- 2. USER REQUEST TO SHIP VIEW -->
-    <section id="viewRequest" class="hidden bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
-      <h2 class="text-xl font-black text-blue-950">Request a Shipment</h2>
-      <p class="text-xs text-slate-500">Fill out cargo specifications below to book a pickup and generate a tracking reference.</p>
+    <!-- 2. USER BOOK SHIPMENT VIEW -->
+    <section id="viewRequest" class="hidden bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+      <div class="border-b border-slate-100 pb-3">
+        <h2 class="text-xl font-black text-blue-950">Book a Cargo Shipment</h2>
+        <p class="text-xs text-slate-500">Provide freight details to schedule pickup and obtain an official tracking reference.</p>
+      </div>
       
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
         <div>
-          <label class="font-bold text-slate-700 block mb-1">Sender Name</label>
-          <input type="text" id="reqSender" class="w-full bg-slate-50 border border-slate-300 p-2.5 rounded">
+          <label class="font-bold text-slate-700 block mb-1">Sender Name / Corporate Identity</label>
+          <input type="text" id="reqSender" placeholder="Full Name or Company" class="w-full bg-slate-50 border border-slate-300 p-2.5 rounded-lg focus:outline-none focus:border-blue-900">
         </div>
         <div>
-          <label class="font-bold text-slate-700 block mb-1">Recipient Name</label>
-          <input type="text" id="reqRecipient" class="w-full bg-slate-50 border border-slate-300 p-2.5 rounded">
+          <label class="font-bold text-slate-700 block mb-1">Consignee / Recipient Name</label>
+          <input type="text" id="reqRecipient" placeholder="Recipient Full Name" class="w-full bg-slate-50 border border-slate-300 p-2.5 rounded-lg focus:outline-none focus:border-blue-900">
         </div>
         <div>
-          <label class="font-bold text-slate-700 block mb-1">Origin City / Country</label>
-          <input type="text" id="reqOrigin" placeholder="e.g. London, UK" class="w-full bg-slate-50 border border-slate-300 p-2.5 rounded">
+          <label class="font-bold text-slate-700 block mb-1">Origin City / Hub</label>
+          <input type="text" id="reqOrigin" placeholder="e.g. London Airport Terminal 4, UK" class="w-full bg-slate-50 border border-slate-300 p-2.5 rounded-lg focus:outline-none focus:border-blue-900">
         </div>
         <div>
-          <label class="font-bold text-slate-700 block mb-1">Destination City / Country</label>
-          <input type="text" id="reqDest" placeholder="e.g. Lagos, Nigeria" class="w-full bg-slate-50 border border-slate-300 p-2.5 rounded">
+          <label class="font-bold text-slate-700 block mb-1">Destination Address / Country</label>
+          <input type="text" id="reqDest" placeholder="e.g. Lagos International Cargo Terminal, Nigeria" class="w-full bg-slate-50 border border-slate-300 p-2.5 rounded-lg focus:outline-none focus:border-blue-900">
         </div>
       </div>
-      <button onclick="submitShipmentRequest()" class="w-full bg-blue-900 hover:bg-blue-800 text-white font-bold text-xs py-3 rounded-lg transition">Submit Shipping Request</button>
+      <button onclick="submitShipmentRequest()" class="w-full bg-blue-900 hover:bg-blue-800 text-white font-bold text-xs py-3 rounded-xl transition shadow">Submit Cargo Order</button>
     </section>
 
-    <!-- 3. CLIENT LOGIN / ACCOUNT VIEW -->
-    <section id="viewAuth" class="hidden bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4 max-w-md mx-auto">
-      <h2 class="text-xl font-black text-blue-950 text-center">Client Portal Login</h2>
+    <!-- 3. CLIENT LOGIN VIEW -->
+    <section id="viewAuth" class="hidden bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4 max-w-md mx-auto">
+      <div class="text-center space-y-1">
+        <div class="inline-block bg-blue-100 text-blue-900 p-3 rounded-full mb-1"><i class="fa-solid fa-user-check text-xl"></i></div>
+        <h2 class="text-xl font-black text-blue-950">Client Portal Sign-In</h2>
+        <p class="text-xs text-slate-500">Access corporate billing, manifests, and electronic bills of lading.</p>
+      </div>
       <div class="space-y-3 text-xs">
-        <input type="email" placeholder="Email Address" class="w-full bg-slate-50 border border-slate-300 p-3 rounded">
-        <input type="password" placeholder="Password" class="w-full bg-slate-50 border border-slate-300 p-3 rounded">
-        <button onclick="alert('Client portal session active.')" class="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 rounded">Login to Account</button>
+        <input type="email" placeholder="Corporate Account Email" class="w-full bg-slate-50 border border-slate-300 p-3 rounded-lg focus:outline-none">
+        <input type="password" placeholder="Password" class="w-full bg-slate-50 border border-slate-300 p-3 rounded-lg focus:outline-none">
+        <button onclick="alert('Client portal session initialized.')" class="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 rounded-lg transition shadow-sm">Login to Client Portal</button>
       </div>
     </section>
 
     <!-- 4. ADMIN MANAGEMENT PANEL -->
-    <section id="viewAdmin" class="hidden bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-6">
+    <section id="viewAdmin" class="hidden bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6">
       <div class="flex justify-between items-center border-b border-slate-100 pb-3">
-        <h2 class="text-xl font-black text-blue-950"><i class="fa-solid fa-gauge text-orange-600"></i> Dispatch & Admin Management Center</h2>
-        <button onclick="adminLogout()" class="text-xs bg-red-100 text-red-700 font-bold px-2.5 py-1 rounded hover:bg-red-200">Logout Admin</button>
+        <h2 class="text-xl font-black text-blue-950 flex items-center gap-2">
+          <i class="fa-solid fa-sliders text-orange-600"></i> Dispatch & Admin Control Center
+        </h2>
+        <button onclick="adminLogout()" class="text-xs bg-red-100 text-red-700 font-bold px-3 py-1.5 rounded-lg hover:bg-red-200 transition">Logout Admin</button>
       </div>
 
-      <!-- CREATE NEW SHIPMENT -->
+      <!-- STEP 1: CREATE NEW SHIPMENT -->
       <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3 text-xs">
-        <h3 class="font-bold text-slate-800">1. Create New Shipment</h3>
+        <h3 class="font-bold text-slate-800 flex items-center gap-2">
+          <span class="bg-blue-900 text-white w-5 h-5 rounded-full inline-flex items-center justify-center text-[10px]">1</span>
+          Initialize New Package
+        </h3>
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
-          <input type="text" id="admNewId" placeholder="Tracking ID (e.g. GX-9021-US)" class="bg-white border border-slate-300 p-2 rounded">
-          <input type="text" id="admNewOrigin" placeholder="Origin Location" class="bg-white border border-slate-300 p-2 rounded">
-          <input type="text" id="admNewDest" placeholder="Destination Location" class="bg-white border border-slate-300 p-2 rounded">
+          <input type="text" id="admNewId" placeholder="Tracking ID (e.g., GX-9021-US)" class="bg-white border border-slate-300 p-2.5 rounded-lg font-mono">
+          <input type="text" id="admNewOrigin" placeholder="Origin Hub (e.g. London, UK)" class="bg-white border border-slate-300 p-2.5 rounded-lg">
+          <input type="text" id="admNewDest" placeholder="Destination (e.g. Lagos, Nigeria)" class="bg-white border border-slate-300 p-2.5 rounded-lg">
         </div>
-        <button onclick="admCreatePackage()" class="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-2 rounded transition">Initialize Shipment</button>
+        <button onclick="admCreatePackage()" class="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-2.5 rounded-lg transition shadow-sm">Create Tracking Record</button>
       </div>
 
-      <!-- EDIT & UPDATE CHECKPOINT / EDITABLE CHARGES -->
-      <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3 text-xs">
-        <h3 class="font-bold text-slate-800">2. Update Checkpoint & Configure Payment Channels</h3>
-        <select id="admSelectPkg" onchange="admLoadPackageData()" class="w-full bg-white border border-slate-300 p-2 rounded">
-          <option value="">Select Target Package...</option>
-        </select>
+      <!-- STEP 2: UPDATE CHECKPOINT, PROGRESS & CUSTOM CHARGES -->
+      <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-4 text-xs">
+        <h3 class="font-bold text-slate-800 flex items-center gap-2">
+          <span class="bg-blue-900 text-white w-5 h-5 rounded-full inline-flex items-center justify-center text-[10px]">2</span>
+          Update Shipment Checkpoint, Progress & Payment Settings
+        </h3>
         
-        <input type="text" id="admLocInput" placeholder="Current Checkpoint Location (e.g. Customs Hub)" class="w-full bg-white border border-slate-300 p-2 rounded">
-        
-        <select id="admStatusInput" class="w-full bg-white border border-slate-300 p-2 rounded">
-          <option value="In Transit">In Transit</option>
-          <option value="Held at Customs">Held at Customs (Action Required)</option>
-          <option value="Out for Delivery">Out for Delivery</option>
-          <option value="Delivered">Delivered</option>
-        </select>
+        <div class="space-y-2">
+          <label class="font-bold text-slate-700">Select Target Package:</label>
+          <select id="admSelectPkg" onchange="admLoadPackageData()" class="w-full bg-white border border-slate-300 p-2.5 rounded-lg font-mono">
+            <option value="">-- Select Active Package --</option>
+          </select>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="font-bold text-slate-700 block mb-1">Current Checkpoint Location:</label>
+            <input type="text" id="admLocInput" placeholder="e.g. Lagos Airport Customs Clearance Hub" class="w-full bg-white border border-slate-300 p-2.5 rounded-lg">
+          </div>
+          <div>
+            <label class="font-bold text-slate-700 block mb-1">Shipment Status Category:</label>
+            <select id="admStatusInput" class="w-full bg-white border border-slate-300 p-2.5 rounded-lg font-bold">
+              <option value="In Transit">In Transit</option>
+              <option value="Held at Customs">Held at Customs (Action Required)</option>
+              <option value="Out for Delivery">Out for Delivery</option>
+              <option value="Delivered">Delivered</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- PROGRESS PERCENTAGE SLIDER -->
+        <div class="bg-white p-3 rounded-lg border border-slate-200 space-y-2">
+          <div class="flex justify-between items-center font-bold text-slate-700">
+            <span>Shipment Progress Completion:</span>
+            <span id="admProgressVal" class="text-orange-600 font-mono text-sm">45%</span>
+          </div>
+          <input type="range" id="admProgressSlider" min="0" max="100" value="45" oninput="document.getElementById('admProgressVal').innerText = this.value + '%'" class="w-full accent-orange-600">
+          <span class="text-[10px] text-slate-400 block">This smoothly moves the cargo vehicle icon across the progress bar on the tracking page.</span>
+        </div>
 
         <!-- EDITABLE CHARGES TOGGLE -->
-        <div class="flex items-center gap-2 pt-1">
-          <input type="checkbox" id="admFeeToggle" onchange="toggleAdmFeeBox()" class="rounded">
-          <label for="admFeeToggle" class="font-bold text-slate-700">Enable Custom Charges & Payment Gateways</label>
+        <div class="pt-2 border-t border-slate-200 space-y-3">
+          <div class="flex items-center gap-2">
+            <input type="checkbox" id="admFeeToggle" onchange="toggleAdmFeeBox()" class="w-4 h-4 rounded text-orange-600 focus:ring-orange-500">
+            <label for="admFeeToggle" class="font-bold text-slate-800">Enable Mandatory Settlement / Clearance Charges</label>
+          </div>
+
+          <div id="admFeeEditContainer" class="hidden space-y-3 bg-white p-3.5 rounded-lg border border-slate-200">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <div class="sm:col-span-2">
+                <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Custom Fee Title</label>
+                <input type="text" id="admFeeTitleInput" placeholder="e.g. Customs Import Duty & Inspection Fee" class="w-full border border-slate-300 p-2 rounded-lg">
+              </div>
+              <div>
+                <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Amount ($ USD)</label>
+                <input type="text" id="admFeeAmountInput" placeholder="150.00" class="w-full border border-slate-300 p-2 rounded-lg font-bold">
+              </div>
+            </div>
+
+            <!-- DYNAMIC PAYMENT METHODS BUILDER -->
+            <div class="border-t border-slate-100 pt-3 space-y-3">
+              <div class="flex justify-between items-center">
+                <span class="text-[11px] font-bold text-blue-950 uppercase">Configure Payment Gateways & Options:</span>
+                <button onclick="addPaymentMethodRow()" class="bg-blue-900 text-white font-bold text-[10px] px-2.5 py-1 rounded hover:bg-blue-800 transition">
+                  + Add Payment Channel
+                </button>
+              </div>
+
+              <div id="paymentMethodsBuilder" class="space-y-2">
+                <!-- Dynamic rows injected via JS -->
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div id="admFeeEditContainer" class="hidden space-y-3 bg-white p-3 rounded border border-slate-200">
-          <div>
-            <label class="text-[10px] font-bold text-slate-500 uppercase">Custom Charge Title (Editable)</label>
-            <input type="text" id="admFeeTitleInput" placeholder="e.g. Customs Import Duty & Clearance Charge" class="w-full border border-slate-300 p-2 rounded">
-          </div>
-          
-          <div class="flex gap-2">
-            <input type="text" id="admFeeCurrInput" value="$" placeholder="Currency ($/€/£/BTC)" class="w-20 border border-slate-300 p-2 rounded text-center font-bold">
-            <input type="number" id="admFeeAmountInput" placeholder="Fee Amount (e.g. 150)" class="flex-1 border border-slate-300 p-2 rounded">
-          </div>
-
-          <div class="border-t border-slate-100 pt-2 space-y-2">
-            <span class="text-[10px] font-bold text-blue-950 uppercase">Configure Payment Links & Details:</span>
-            <input type="text" id="admPayGatewayUrl" placeholder="Direct Card Gateway Link (e.g. Paystack / Flutterwave URL)" class="w-full border border-slate-300 p-2 rounded">
-            <input type="text" id="admBtcAddress" placeholder="Bitcoin (BTC) Wallet Address" class="w-full border border-slate-300 p-2 rounded font-mono">
-            <input type="text" id="admUsdtAddress" placeholder="USDT (TRC20) Wallet Address" class="w-full border border-slate-300 p-2 rounded font-mono">
-            <textarea id="admBankDetails" rows="2" placeholder="Bank Transfer Info (Bank Name, Account Number, Account Name)..." class="w-full border border-slate-300 p-2 rounded font-mono text-[11px]"></textarea>
-          </div>
-        </div>
-
-        <button onclick="admPushUpdate()" class="w-full bg-blue-900 hover:bg-blue-800 text-white font-bold py-2.5 rounded transition">Push Updates Live to Public View</button>
+        <button onclick="admPushUpdate()" class="w-full bg-blue-900 hover:bg-blue-800 text-white font-bold py-3 rounded-lg transition shadow">
+          Push Live Checkpoint & Charges Update
+        </button>
       </div>
 
-      <!-- PAYMENT PROOFS APPROVAL QUEUE -->
+      <!-- STEP 3: CUSTOMER PROOF REVIEW QUEUE -->
       <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3 text-xs">
-        <h3 class="font-bold text-blue-950 flex items-center gap-2"><i class="fa-solid fa-receipt text-orange-600"></i> Customer Payment Approval Queue</h3>
-        <div id="adminApprovalQueue" class="space-y-2">
-          <p class="text-slate-400">No payment proofs awaiting verification.</p>
+        <h3 class="font-bold text-blue-950 flex items-center gap-2">
+          <i class="fa-solid fa-receipt text-orange-600"></i> Customer Payment Approval & Screenshot Verification Queue
+        </h3>
+        <div id="adminApprovalQueue" class="space-y-3">
+          <p class="text-slate-400">No payment proofs currently awaiting verification.</p>
         </div>
       </div>
     </section>
@@ -233,80 +326,110 @@
 
       <div class="text-center space-y-1">
         <div class="inline-block bg-blue-900 text-white p-3 rounded-full mb-1"><i class="fa-solid fa-lock text-xl"></i></div>
-        <h3 class="text-base font-black text-blue-950">Dispatch Admin Login</h3>
-        <p class="text-slate-500">Enter your credentials to access the management panel.</p>
+        <h3 class="text-base font-black text-blue-950">Dispatch Admin Authentication</h3>
+        <p class="text-slate-500">Enter secure administrative credentials.</p>
       </div>
 
       <div class="space-y-2.5">
         <div>
           <label class="font-bold text-slate-700 block mb-1">Username</label>
-          <input type="text" id="loginUsername" placeholder="Enter Username" class="w-full border border-slate-300 p-2.5 rounded">
+          <input type="text" id="loginUsername" placeholder="Enter Username" class="w-full border border-slate-300 p-2.5 rounded-lg focus:outline-none">
         </div>
         <div>
           <label class="font-bold text-slate-700 block mb-1">Passcode</label>
-          <input type="password" id="loginPasscode" placeholder="Enter Passcode" class="w-full border border-slate-300 p-2.5 rounded">
+          <input type="password" id="loginPasscode" placeholder="Enter Passcode" class="w-full border border-slate-300 p-2.5 rounded-lg focus:outline-none">
         </div>
-        <button onclick="processAdminLogin()" class="w-full bg-blue-900 hover:bg-blue-800 text-white font-bold py-3 rounded-lg transition mt-1">Authenticate Access 🔓</button>
+        <button onclick="processAdminLogin()" class="w-full bg-blue-900 hover:bg-blue-800 text-white font-bold py-3 rounded-lg transition mt-1 shadow-sm">
+          Authenticate Session 🔓
+        </button>
       </div>
     </div>
   </div>
 
-  <!-- PAYMENT & CHECKOUT MODAL -->
+  <!-- PAYMENT SETTLEMENT & PROOF UPLOAD MODAL -->
   <div id="paymentModal" class="hidden fixed inset-0 bg-black/75 z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 relative shadow-2xl max-h-[90vh] overflow-y-auto text-xs">
       <button onclick="closePaymentModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-700 text-base"><i class="fa-solid fa-xmark"></i></button>
 
-      <h3 class="text-base font-black text-blue-950 flex items-center gap-2"><i class="fa-solid fa-shield-halved text-orange-600"></i> Secure Fee Settlement Portal</h3>
-      <p class="text-slate-500">Select your preferred payment channel below to clear charges and release your package hold.</p>
-
-      <!-- DYNAMIC CLICKABLE PAYMENT BUTTONS & WALLET BOXES -->
-      <div id="modalPaymentChannels" class="space-y-3">
-        <!-- Rendered dynamically via JavaScript -->
+      <div class="space-y-1 border-b border-slate-100 pb-3">
+        <h3 class="text-base font-black text-blue-950 flex items-center gap-2">
+          <i class="fa-solid fa-shield-halved text-orange-600"></i> Secure Fee Settlement Portal
+        </h3>
+        <p class="text-slate-500">Select payment channel and upload payment receipt screenshot for verification.</p>
       </div>
 
-      <!-- SUBMIT PROOF FORM -->
-      <div class="border-t border-slate-200 pt-3 space-y-2">
-        <span class="font-bold text-slate-800 uppercase text-[10px] block">Submit Confirmation Proof</span>
-        <input type="text" id="proofSender" placeholder="Your Full Name / Email" class="w-full border border-slate-300 p-2.5 rounded">
-        <input type="text" id="proofRef" placeholder="Transaction Hash / Payment Reference ID" class="w-full border border-slate-300 p-2.5 rounded">
-        <button onclick="submitProof()" class="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 rounded-lg transition shadow-sm">Submit Proof for Immediate Approval</button>
+      <!-- DYNAMIC PAYMENT CHANNELS -->
+      <div id="modalPaymentChannels" class="space-y-3">
+        <!-- Rendered dynamically -->
+      </div>
+
+      <!-- PROOF SUBMISSION FORM WITH SCREENSHOT PREVIEW -->
+      <div class="border-t border-slate-200 pt-3 space-y-3">
+        <span class="font-bold text-slate-800 uppercase text-[10px] block">Submit Proof of Payment</span>
+        
+        <div>
+          <label class="text-slate-600 font-semibold block mb-1">Full Name / Email</label>
+          <input type="text" id="proofSender" placeholder="e.g., John Doe (john@example.com)" class="w-full border border-slate-300 p-2.5 rounded-lg">
+        </div>
+
+        <div>
+          <label class="text-slate-600 font-semibold block mb-1">Transaction Ref / ID</label>
+          <input type="text" id="proofRef" placeholder="e.g., TRX-902184029" class="w-full border border-slate-300 p-2.5 rounded-lg">
+        </div>
+
+        <!-- FILE UPLOAD INPUT WITH PREVIEW -->
+        <div>
+          <label class="text-slate-600 font-semibold block mb-1">Payment Receipt Screenshot</label>
+          <input type="file" id="proofImageInput" accept="image/*" onchange="previewProofImage(event)" class="w-full border border-slate-300 p-2 rounded-lg bg-slate-50 text-slate-600 text-xs">
+          
+          <div id="imagePreviewContainer" class="hidden mt-2 border border-slate-200 p-1.5 rounded-lg bg-slate-50 text-center">
+            <span class="text-[10px] font-bold text-slate-400 block mb-1">Screenshot Preview:</span>
+            <img id="imagePreview" src="" alt="Payment Receipt" class="max-h-36 mx-auto rounded object-contain border border-slate-200">
+          </div>
+        </div>
+
+        <button onclick="submitProof()" class="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 rounded-lg transition shadow flex items-center justify-center gap-2">
+          <i class="fa-solid fa-cloud-arrow-up"></i> Submit Proof for Instant Approval
+        </button>
       </div>
     </div>
   </div>
 
-  <!-- JAVASCRIPT APPLICATION LOGIC -->
+  <!-- JAVASCRIPT LOGIC -->
   <script>
     // AUTH CREDENTIALS
     const ADMIN_USER = "Admin";
     const ADMIN_PASS = "Femifresh12345";
     let isAdminAuthenticated = false;
 
-    // DATABASE STORAGE
+    // INITIAL DATABASE
     let shipments = JSON.parse(localStorage.getItem('globalexpress_data')) || {
       "GX-984720192-US": {
-        origin: "London, UK",
-        destination: "Lagos, Nigeria",
-        currentLoc: "Lagos International Airport Customs Hub",
+        origin: "London Heathrow Airport, UK",
+        destination: "Lagos International Airport, Nigeria",
+        currentLoc: "Lagos Airport Customs Clearance Hub",
         status: "Held at Customs",
+        progress: 65,
         feeRequired: true,
-        feeTitle: "Customs Import Clearance Duty & Tariff",
-        feeCurr: "$",
+        feeTitle: "Customs Import Duty & Tariff Clearance Charge",
         feeAmount: "150.00",
-        gatewayUrl: "https://paystack.com",
-        btcAddress: "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
-        usdtAddress: "TYDzs2ZF938475hnx89347598347593847",
-        bankDetails: "Global Express Logistics Ltd\nBank: Access Bank\nAcc: 0123456789",
+        paymentMethods: [
+          { type: "gateway", label: "Pay via Online Card Gateway", value: "https://paystack.com" },
+          { type: "btc", label: "Bitcoin (BTC) Wallet", value: "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh" },
+          { type: "usdt", label: "USDT (TRC20) Wallet", value: "TYDzs2ZF938475hnx89347598347593847" },
+          { type: "bank", label: "Bank Wire Transfer", value: "Bank: Access Bank PLC\nAccount Name: Global Express Cargo\nAcc No: 0123456789" }
+        ],
         proofSubmitted: false,
-        coords: [6.5774, 3.3210],
         timeline: [
-          { time: "2026-03-28 11:30", loc: "Lagos Airport Customs", note: "Package held for mandatory customs tariff clearance inspection." }
+          { time: "2026-03-28 11:30", loc: "Lagos Airport Customs", note: "Package held for mandatory import clearance and tariff settlement." },
+          { time: "2026-03-27 18:20", loc: "In Transit - Cargo Flight EX-902", note: "Departed transit hub en route to final destination country." },
+          { time: "2026-03-26 09:00", loc: "London Heathrow Hub, UK", note: "Package received and processed at origin facility." }
         ]
       }
     };
 
     let activeCode = null;
-    let leafletMap = null;
-    let mapMarker = null;
+    let uploadedImageData = null;
 
     function saveData() {
       localStorage.setItem('globalexpress_data', JSON.stringify(shipments));
@@ -326,14 +449,14 @@
       });
       const targetEl = document.getElementById('view' + viewName.charAt(0).toUpperCase() + viewName.slice(1));
       if (targetEl) targetEl.classList.remove('hidden');
-      
+
       if (viewName === 'admin') {
         admPopulateSelect();
         renderAdminQueue();
       }
     }
 
-    // ADMIN AUTHENTICATION
+    // ADMIN LOGIN
     function openAdminLoginModal() {
       if (isAdminAuthenticated) {
         switchView('admin');
@@ -353,47 +476,57 @@
       if (u === ADMIN_USER && p === ADMIN_PASS) {
         isAdminAuthenticated = true;
         closeAdminLoginModal();
-        alert('✅ Login Successful! Welcome to Dispatch Management.');
+        alert('✅ Login Successful! Welcome Admin.');
         switchView('admin');
       } else {
-        alert('❌ Invalid Username or Passcode. Access Denied.');
+        alert('❌ Invalid Username or Passcode.');
       }
     }
 
     function adminLogout() {
       isAdminAuthenticated = false;
-      alert('Logged out of Admin Portal.');
+      alert('Logged out of Admin Control Center.');
       switchView('tracking');
     }
 
-    // SEARCH & TRACKING
+    // SEARCH & DISPLAY TRACKING DATA
     function performSearch() {
       const code = document.getElementById('trackingInput').value.trim();
       const pkg = shipments[code];
 
       if (!pkg) {
-        alert('Tracking code not found in global database. Please check reference.');
+        alert('Tracking Reference not found. Please verify code.');
         return;
       }
 
       activeCode = code;
       document.getElementById('trackingResultCard').classList.remove('hidden');
       document.getElementById('resCode').innerText = code;
+      document.getElementById('resOrigin').innerText = pkg.origin;
       document.getElementById('resCurrentLoc').innerText = pkg.currentLoc;
+      document.getElementById('resDestination').innerText = pkg.destination;
+      document.getElementById('resOriginSub').innerText = pkg.origin;
+      document.getElementById('resDestSub').innerText = pkg.destination;
       document.getElementById('resBadge').innerText = pkg.status.toUpperCase();
+
+      // UPDATE ANIMATED PROGRESS BAR
+      const progress = pkg.progress !== undefined ? pkg.progress : 50;
+      document.getElementById('resProgressText').innerText = `${progress}% Completed`;
+      document.getElementById('progressBarFill').style.width = `${progress}%`;
+      document.getElementById('progressVehicle').style.left = `${progress}%`;
 
       // FEE ALERT BANNER
       const alertBox = document.getElementById('feeAlertBox');
       if (pkg.feeRequired) {
         alertBox.classList.remove('hidden');
-        document.getElementById('resFeeTitle').innerText = "Action Required: " + (pkg.feeTitle || "Customs Charges");
-        document.getElementById('resFeeNote').innerText = pkg.proofSubmitted ? "✅ Payment proof submitted. Verification in progress." : "Settlement required to release shipment hold.";
-        document.getElementById('resFeeAmountDisplay').innerText = pkg.feeCurr + pkg.feeAmount + " USD";
+        document.getElementById('resFeeTitle').innerText = "Action Required: " + (pkg.feeTitle || "Customs Duty Fee");
+        document.getElementById('resFeeNote').innerText = pkg.proofSubmitted ? "✅ Payment receipt submitted. Approval verification pending." : "Settlement required to release cargo hold.";
+        document.getElementById('resFeeAmountDisplay').innerText = "$" + pkg.feeAmount + " USD";
       } else {
         alertBox.classList.add('hidden');
       }
 
-      // TIMELINE
+      // TIMELINE HISTORY
       const tl = document.getElementById('resTimeline');
       tl.innerHTML = '';
       pkg.timeline.forEach(item => {
@@ -401,28 +534,17 @@
           <div class="relative pl-2">
             <span class="text-[10px] font-mono font-bold text-orange-600 block">${item.time}</span>
             <span class="text-xs font-bold text-blue-950">${item.loc}</span>
-            <p class="text-[11px] text-slate-500">${item.note}</p>
+            <p class="text-[11px] text-slate-500 mt-0.5">${item.note}</p>
           </div>
         `;
       });
-
-      // LEAFLET MAP
-      if (!leafletMap) {
-        leafletMap = L.map('map').setView(pkg.coords || [6.5244, 3.3792], 6);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(leafletMap);
-        mapMarker = L.marker(pkg.coords || [6.5244, 3.3792]).addTo(leafletMap);
-      } else {
-        leafletMap.setView(pkg.coords || [6.5244, 3.3792], 6);
-        mapMarker.setLatLng(pkg.coords || [6.5244, 3.3792]);
-      }
-      setTimeout(() => { leafletMap.invalidateSize(); }, 200);
     }
 
-    // ADMIN MANAGEMENT CONTROLS
+    // ADMIN MANAGEMENT
     function admPopulateSelect() {
       const sel = document.getElementById('admSelectPkg');
       if (!sel) return;
-      sel.innerHTML = '<option value="">Select Target Package...</option>';
+      sel.innerHTML = '<option value="">-- Select Active Package --</option>';
       Object.keys(shipments).forEach(id => {
         sel.innerHTML += `<option value="${id}">${id} (${shipments[id].destination})</option>`;
       });
@@ -437,73 +559,114 @@
       const id = document.getElementById('admSelectPkg').value;
       if (!id) return;
       const pkg = shipments[id];
+
       document.getElementById('admLocInput').value = pkg.currentLoc;
       document.getElementById('admStatusInput').value = pkg.status;
+      
+      const prog = pkg.progress !== undefined ? pkg.progress : 50;
+      document.getElementById('admProgressSlider').value = prog;
+      document.getElementById('admProgressVal').innerText = prog + '%';
+
       document.getElementById('admFeeToggle').checked = pkg.feeRequired;
       document.getElementById('admFeeEditContainer').classList.toggle('hidden', !pkg.feeRequired);
+
       if (pkg.feeRequired) {
         document.getElementById('admFeeTitleInput').value = pkg.feeTitle || '';
-        document.getElementById('admFeeCurrInput').value = pkg.feeCurr || '$';
         document.getElementById('admFeeAmountInput').value = pkg.feeAmount || '';
-        document.getElementById('admPayGatewayUrl').value = pkg.gatewayUrl || '';
-        document.getElementById('admBtcAddress').value = pkg.btcAddress || '';
-        document.getElementById('admUsdtAddress').value = pkg.usdtAddress || '';
-        document.getElementById('admBankDetails').value = pkg.bankDetails || '';
+
+        // LOAD PAYMENT METHODS BUILDER
+        const container = document.getElementById('paymentMethodsBuilder');
+        container.innerHTML = '';
+        const methods = pkg.paymentMethods || [];
+        methods.forEach(m => addPaymentMethodRow(m.type, m.label, m.value));
+        if (methods.length === 0) addPaymentMethodRow();
       }
+    }
+
+    function addPaymentMethodRow(type = 'gateway', label = '', value = '') {
+      const container = document.getElementById('paymentMethodsBuilder');
+      const rowId = 'pmRow_' + Date.now() + '_' + Math.floor(Math.random()*1000);
+      
+      const div = document.createElement('div');
+      div.className = "flex flex-col sm:flex-row gap-1.5 items-center bg-slate-50 p-2 rounded border border-slate-200 text-xs";
+      div.id = rowId;
+      div.innerHTML = `
+        <select class="pm-type border border-slate-300 p-1.5 rounded font-bold bg-white text-[11px]">
+          <option value="gateway" ${type === 'gateway' ? 'selected' : ''}>Online Gateway Link</option>
+          <option value="btc" ${type === 'btc' ? 'selected' : ''}>Bitcoin (BTC)</option>
+          <option value="usdt" ${type === 'usdt' ? 'selected' : ''}>USDT (TRC20)</option>
+          <option value="bank" ${type === 'bank' ? 'selected' : ''}>Bank Transfer</option>
+          <option value="custom" ${type === 'custom' ? 'selected' : ''}>Custom Channel</option>
+        </select>
+        <input type="text" placeholder="Button Title (e.g. Pay via Card)" value="${label}" class="pm-label border border-slate-300 p-1.5 rounded bg-white flex-1 text-[11px]">
+        <input type="text" placeholder="URL Link or Wallet/Bank Details" value="${value}" class="pm-value border border-slate-300 p-1.5 rounded bg-white flex-1 font-mono text-[11px]">
+        <button onclick="document.getElementById('${rowId}').remove()" class="text-red-600 hover:text-red-800 p-1 font-bold text-sm"><i class="fa-solid fa-trash"></i></button>
+      `;
+      container.appendChild(div);
     }
 
     function admCreatePackage() {
       const id = document.getElementById('admNewId').value.trim();
       const origin = document.getElementById('admNewOrigin').value.trim();
       const dest = document.getElementById('admNewDest').value.trim();
-      if (!id || !origin || !dest) return alert('Fill out all shipment fields.');
+      if (!id || !origin || !dest) return alert('Fill out all required shipment fields.');
 
       shipments[id] = {
         origin: origin,
         destination: dest,
         currentLoc: origin,
         status: "In Transit",
+        progress: 10,
         feeRequired: false,
-        coords: [6.5244, 3.3792],
-        timeline: [{ time: new Date().toISOString().replace('T', ' ').substring(0, 16), loc: origin, note: "Shipment initialized in global tracking network." }]
+        timeline: [{ time: new Date().toISOString().replace('T', ' ').substring(0, 16), loc: origin, note: "Package created in global carrier network." }]
       };
       saveData();
-      alert('Shipment successfully created.');
+      alert('Shipment successfully initialized.');
     }
 
     function admPushUpdate() {
       const id = document.getElementById('admSelectPkg').value;
       const loc = document.getElementById('admLocInput').value.trim();
       const status = document.getElementById('admStatusInput').value;
+      const progress = parseInt(document.getElementById('admProgressSlider').value);
       const feeReq = document.getElementById('admFeeToggle').checked;
 
-      if (!id || !loc) return alert('Select package and checkpoint location.');
+      if (!id || !loc) return alert('Select package and enter current location.');
 
       const pkg = shipments[id];
       pkg.currentLoc = loc;
       pkg.status = status;
+      pkg.progress = progress;
       pkg.feeRequired = feeReq;
 
       if (feeReq) {
         pkg.feeTitle = document.getElementById('admFeeTitleInput').value || "Customs Clearance Fee";
-        pkg.feeCurr = document.getElementById('admFeeCurrInput').value || "$";
-        pkg.feeAmount = document.getElementById('admFeeAmountInput').value || "100.00";
-        pkg.gatewayUrl = document.getElementById('admPayGatewayUrl').value.trim();
-        pkg.btcAddress = document.getElementById('admBtcAddress').value.trim();
-        pkg.usdtAddress = document.getElementById('admUsdtAddress').value.trim();
-        pkg.bankDetails = document.getElementById('admBankDetails').value.trim();
+        pkg.feeAmount = document.getElementById('admFeeAmountInput').value || "150.00";
+
+        // GATHER PAYMENT METHODS
+        const methodRows = document.querySelectorAll('#paymentMethodsBuilder > div');
+        pkg.paymentMethods = [];
+        methodRows.forEach(row => {
+          const type = row.querySelector('.pm-type').value;
+          const label = row.querySelector('.pm-label').value.trim();
+          const val = row.querySelector('.pm-value').value.trim();
+          if (val) {
+            pkg.paymentMethods.push({ type: type, label: label || type.toUpperCase(), value: val });
+          }
+        });
       }
 
       pkg.timeline.unshift({
         time: new Date().toISOString().replace('T', ' ').substring(0, 16),
         loc: loc,
-        note: feeReq ? `Held at ${loc}. ${pkg.feeTitle}` : `In transit update at ${loc}`
+        note: feeReq ? `Held at ${loc}. ${pkg.feeTitle}` : `Transit update at ${loc}`
       });
 
       saveData();
-      alert('Dispatch updates pushed live successfully.');
+      alert('Tracking updates and payment configurations pushed live.');
     }
 
+    // PAYMENT PROOF QUEUE & APPROVAL
     function renderAdminQueue() {
       const q = document.getElementById('adminApprovalQueue');
       if (!q) return;
@@ -515,18 +678,28 @@
         if (pkg.feeRequired && pkg.proofSubmitted && !pkg.feeApproved) {
           found = true;
           q.innerHTML += `
-            <div class="bg-white p-3 rounded border border-slate-200 flex justify-between items-center">
-              <div>
-                <strong class="font-mono text-blue-900">${id}</strong>
-                <p class="text-slate-600">Payer: ${pkg.payerName} | Ref: ${pkg.payerRef}</p>
-                <span class="text-[10px] text-orange-600 font-bold">Due: ${pkg.feeCurr}${pkg.feeAmount}</span>
+            <div class="bg-white p-3.5 rounded-lg border border-slate-200 space-y-2">
+              <div class="flex justify-between items-start">
+                <div>
+                  <strong class="font-mono text-blue-900 text-sm">${id}</strong>
+                  <p class="text-slate-600">Payer: <strong>${pkg.payerName}</strong> | Ref: <strong>${pkg.payerRef}</strong></p>
+                  <span class="text-orange-600 font-bold">Amount Due: $${pkg.feeAmount} USD</span>
+                </div>
+                <button onclick="approvePayment('${id}')" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-lg transition shadow-sm">
+                  Approve & Resume
+                </button>
               </div>
-              <button onclick="approvePayment('${id}')" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded transition">Approve & Resume</button>
+              ${pkg.payerImage ? `
+                <div class="mt-2 border-t border-slate-100 pt-2">
+                  <span class="text-[10px] font-bold text-slate-400 block mb-1">Receipt Screenshot Proof:</span>
+                  <img src="${pkg.payerImage}" class="max-h-40 rounded border border-slate-200 cursor-pointer" onclick="window.open('${pkg.payerImage}')">
+                </div>
+              ` : ''}
             </div>
           `;
         }
       });
-      if (!found) q.innerHTML = '<p class="text-slate-400">No payment proofs awaiting verification.</p>';
+      if (!found) q.innerHTML = '<p class="text-slate-400">No payment proofs currently awaiting verification.</p>';
     }
 
     function approvePayment(id) {
@@ -535,75 +708,77 @@
       pkg.feeApproved = true;
       pkg.proofSubmitted = false;
       pkg.status = "In Transit";
-      pkg.currentLoc = "Cleared Customs - En Route";
+      pkg.currentLoc = "Cleared Customs - Movement Resumed";
+      pkg.progress = Math.min(100, (pkg.progress || 50) + 15);
       pkg.timeline.unshift({
         time: new Date().toISOString().replace('T', ' ').substring(0, 16),
         loc: pkg.currentLoc,
-        note: "Payment verified by finance department. Shipment movement resumed."
+        note: "Payment proof verified and cleared by accounting. Shipment movement resumed."
       });
       saveData();
-      alert(`Payment for ${id} approved! Package status updated back to In Transit.`);
+      alert(`Payment for ${id} approved! Package hold cleared.`);
     }
 
     function submitShipmentRequest() {
       const sender = document.getElementById('reqSender').value;
       const dest = document.getElementById('reqDest').value;
-      if (!sender || !dest) return alert('Please fill in required fields.');
-      alert('Shipment booking received successfully!');
+      if (!sender || !dest) return alert('Please complete required fields.');
+      alert('Cargo order received successfully!');
       switchView('tracking');
     }
 
-    // CLICKABLE PAYMENT MODAL GENERATOR
+    // CUSTOMER PAYMENT MODAL
     function openPaymentModal() {
       if (!activeCode) return;
       const pkg = shipments[activeCode];
       const container = document.getElementById('modalPaymentChannels');
       container.innerHTML = '';
 
-      // 1. Direct Gateway Button Link
-      if (pkg.gatewayUrl) {
-        container.innerHTML += `
-          <a href="${pkg.gatewayUrl}" target="_blank" class="block w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-center py-3 rounded-lg transition shadow-sm flex items-center justify-center gap-2">
-            <i class="fa-solid fa-credit-card"></i> Pay via Secure Online Gateway 🔒
-          </a>
-        `;
-      }
+      const methods = pkg.paymentMethods || [];
 
-      // 2. Bitcoin Wallet Box
-      if (pkg.btcAddress) {
-        container.innerHTML += `
-          <div class="bg-slate-50 border border-slate-200 p-3 rounded-lg space-y-1">
-            <span class="font-bold text-slate-700 text-[10px] uppercase block"><i class="fa-brands fa-bitcoin text-amber-500"></i> Bitcoin (BTC) Address:</span>
-            <div class="flex justify-between items-center gap-2">
-              <span id="btcVal" class="font-mono text-slate-800 text-[11px] truncate">${pkg.btcAddress}</span>
-              <button onclick="copyWalletText('btcVal')" class="bg-slate-800 text-white text-[10px] font-bold px-2.5 py-1 rounded hover:bg-slate-700">Copy</button>
+      methods.forEach((m, idx) => {
+        if (m.type === 'gateway') {
+          container.innerHTML += `
+            <a href="${m.value}" target="_blank" class="block w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-center py-3 rounded-xl transition shadow flex items-center justify-center gap-2">
+              <i class="fa-solid fa-credit-card"></i> ${m.label || 'Pay via Card Gateway'} 🔒
+            </a>
+          `;
+        } else if (m.type === 'btc') {
+          container.innerHTML += `
+            <div class="bg-slate-50 border border-slate-200 p-3 rounded-xl space-y-1">
+              <span class="font-bold text-slate-700 text-[10px] uppercase block"><i class="fa-brands fa-bitcoin text-amber-500 mr-1"></i> ${m.label || 'Bitcoin Address'}:</span>
+              <div class="flex justify-between items-center gap-2">
+                <span id="btcVal_${idx}" class="font-mono text-slate-800 text-[11px] truncate">${m.value}</span>
+                <button onclick="copyWalletText('btcVal_${idx}')" class="bg-slate-800 text-white text-[10px] font-bold px-2.5 py-1 rounded hover:bg-slate-700">Copy</button>
+              </div>
             </div>
-          </div>
-        `;
-      }
-
-      // 3. USDT Wallet Box
-      if (pkg.usdtAddress) {
-        container.innerHTML += `
-          <div class="bg-slate-50 border border-slate-200 p-3 rounded-lg space-y-1">
-            <span class="font-bold text-slate-700 text-[10px] uppercase block"><i class="fa-solid fa-coins text-emerald-500"></i> USDT (TRC20) Address:</span>
-            <div class="flex justify-between items-center gap-2">
-              <span id="usdtVal" class="font-mono text-slate-800 text-[11px] truncate">${pkg.usdtAddress}</span>
-              <button onclick="copyWalletText('usdtVal')" class="bg-slate-800 text-white text-[10px] font-bold px-2.5 py-1 rounded hover:bg-slate-700">Copy</button>
+          `;
+        } else if (m.type === 'usdt') {
+          container.innerHTML += `
+            <div class="bg-slate-50 border border-slate-200 p-3 rounded-xl space-y-1">
+              <span class="font-bold text-slate-700 text-[10px] uppercase block"><i class="fa-solid fa-coins text-emerald-500 mr-1"></i> ${m.label || 'USDT TRC20 Address'}:</span>
+              <div class="flex justify-between items-center gap-2">
+                <span id="usdtVal_${idx}" class="font-mono text-slate-800 text-[11px] truncate">${m.value}</span>
+                <button onclick="copyWalletText('usdtVal_${idx}')" class="bg-slate-800 text-white text-[10px] font-bold px-2.5 py-1 rounded hover:bg-slate-700">Copy</button>
+              </div>
             </div>
-          </div>
-        `;
-      }
-
-      // 4. Bank Transfer Details Box
-      if (pkg.bankDetails) {
-        container.innerHTML += `
-          <div class="bg-slate-50 border border-slate-200 p-3 rounded-lg space-y-1">
-            <span class="font-bold text-slate-700 text-[10px] uppercase block"><i class="fa-solid fa-building-columns text-blue-900"></i> Bank Transfer Instructions:</span>
-            <pre class="font-mono text-slate-800 text-[11px] whitespace-pre-wrap">${pkg.bankDetails}</pre>
-          </div>
-        `;
-      }
+          `;
+        } else if (m.type === 'bank') {
+          container.innerHTML += `
+            <div class="bg-slate-50 border border-slate-200 p-3 rounded-xl space-y-1">
+              <span class="font-bold text-slate-700 text-[10px] uppercase block"><i class="fa-solid fa-building-columns text-blue-900 mr-1"></i> ${m.label || 'Bank Transfer Instructions'}:</span>
+              <pre class="font-mono text-slate-800 text-[11px] whitespace-pre-wrap">${m.value}</pre>
+            </div>
+          `;
+        } else {
+          container.innerHTML += `
+            <div class="bg-slate-50 border border-slate-200 p-3 rounded-xl space-y-1">
+              <span class="font-bold text-slate-700 text-[10px] uppercase block"><i class="fa-solid fa-wallet text-orange-600 mr-1"></i> ${m.label}:</span>
+              <p class="font-mono text-slate-800 text-[11px] whitespace-pre-wrap">${m.value}</p>
+            </div>
+          `;
+        }
+      });
 
       document.getElementById('paymentModal').classList.remove('hidden');
     }
@@ -615,21 +790,36 @@
     function copyWalletText(elementId) {
       const text = document.getElementById(elementId).innerText;
       navigator.clipboard.writeText(text);
-      alert('Address copied to clipboard!');
+      alert('Copied to clipboard!');
+    }
+
+    function previewProofImage(event) {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          uploadedImageData = e.target.result;
+          document.getElementById('imagePreview').src = uploadedImageData;
+          document.getElementById('imagePreviewContainer').classList.remove('hidden');
+        };
+        reader.readAsDataURL(file);
+      }
     }
 
     function submitProof() {
       const name = document.getElementById('proofSender').value.trim();
       const ref = document.getElementById('proofRef').value.trim();
-      if (!name || !ref) return alert('Enter your name and transaction reference.');
+
+      if (!name || !ref) return alert('Please enter your Name/Email and Transaction Reference.');
 
       const pkg = shipments[activeCode];
       if (pkg) {
         pkg.proofSubmitted = true;
         pkg.payerName = name;
         pkg.payerRef = ref;
+        pkg.payerImage = uploadedImageData || null;
         saveData();
-        alert('Payment proof transmitted for verification.');
+        alert('Payment proof & screenshot submitted successfully for verification!');
         closePaymentModal();
         performSearch();
       }
