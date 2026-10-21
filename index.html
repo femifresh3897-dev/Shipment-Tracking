@@ -251,7 +251,7 @@
     </div>
   </div>
 
-  <!-- PAYMENT & CHECKOUT MODAL (With Clickable Links & Styled Buttons) -->
+  <!-- PAYMENT & CHECKOUT MODAL -->
   <div id="paymentModal" class="hidden fixed inset-0 bg-black/75 z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 relative shadow-2xl max-h-[90vh] overflow-y-auto text-xs">
       <button onclick="closePaymentModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-700 text-base"><i class="fa-solid fa-xmark"></i></button>
@@ -321,9 +321,11 @@
       }
 
       ['tracking', 'request', 'auth', 'admin'].forEach(v => {
-        document.getElementById('view' + v.charAt(0).toUpperCase() + v.slice(1)).classList.add('hidden');
+        const el = document.getElementById('view' + v.charAt(0).toUpperCase() + v.slice(1));
+        if (el) el.classList.add('hidden');
       });
-      document.getElementById('view' + viewName.charAt(0).toUpperCase() + viewName.slice(1)).classList.remove('hidden');
+      const targetEl = document.getElementById('view' + viewName.charAt(0).toUpperCase() + viewName.slice(1));
+      if (targetEl) targetEl.classList.remove('hidden');
       
       if (viewName === 'admin') {
         admPopulateSelect();
@@ -419,6 +421,7 @@
     // ADMIN MANAGEMENT CONTROLS
     function admPopulateSelect() {
       const sel = document.getElementById('admSelectPkg');
+      if (!sel) return;
       sel.innerHTML = '<option value="">Select Target Package...</option>';
       Object.keys(shipments).forEach(id => {
         sel.innerHTML += `<option value="${id}">${id} (${shipments[id].destination})</option>`;
@@ -482,4 +485,155 @@
       pkg.feeRequired = feeReq;
 
       if (feeReq) {
-        pkg.feeTitle = document.getElementById('admFeeTitleInput').value || "
+        pkg.feeTitle = document.getElementById('admFeeTitleInput').value || "Customs Clearance Fee";
+        pkg.feeCurr = document.getElementById('admFeeCurrInput').value || "$";
+        pkg.feeAmount = document.getElementById('admFeeAmountInput').value || "100.00";
+        pkg.gatewayUrl = document.getElementById('admPayGatewayUrl').value.trim();
+        pkg.btcAddress = document.getElementById('admBtcAddress').value.trim();
+        pkg.usdtAddress = document.getElementById('admUsdtAddress').value.trim();
+        pkg.bankDetails = document.getElementById('admBankDetails').value.trim();
+      }
+
+      pkg.timeline.unshift({
+        time: new Date().toISOString().replace('T', ' ').substring(0, 16),
+        loc: loc,
+        note: feeReq ? `Held at ${loc}. ${pkg.feeTitle}` : `In transit update at ${loc}`
+      });
+
+      saveData();
+      alert('Dispatch updates pushed live successfully.');
+    }
+
+    function renderAdminQueue() {
+      const q = document.getElementById('adminApprovalQueue');
+      if (!q) return;
+      q.innerHTML = '';
+      let found = false;
+
+      Object.keys(shipments).forEach(id => {
+        const pkg = shipments[id];
+        if (pkg.feeRequired && pkg.proofSubmitted && !pkg.feeApproved) {
+          found = true;
+          q.innerHTML += `
+            <div class="bg-white p-3 rounded border border-slate-200 flex justify-between items-center">
+              <div>
+                <strong class="font-mono text-blue-900">${id}</strong>
+                <p class="text-slate-600">Payer: ${pkg.payerName} | Ref: ${pkg.payerRef}</p>
+                <span class="text-[10px] text-orange-600 font-bold">Due: ${pkg.feeCurr}${pkg.feeAmount}</span>
+              </div>
+              <button onclick="approvePayment('${id}')" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded transition">Approve & Resume</button>
+            </div>
+          `;
+        }
+      });
+      if (!found) q.innerHTML = '<p class="text-slate-400">No payment proofs awaiting verification.</p>';
+    }
+
+    function approvePayment(id) {
+      const pkg = shipments[id];
+      pkg.feeRequired = false;
+      pkg.feeApproved = true;
+      pkg.proofSubmitted = false;
+      pkg.status = "In Transit";
+      pkg.currentLoc = "Cleared Customs - En Route";
+      pkg.timeline.unshift({
+        time: new Date().toISOString().replace('T', ' ').substring(0, 16),
+        loc: pkg.currentLoc,
+        note: "Payment verified by finance department. Shipment movement resumed."
+      });
+      saveData();
+      alert(`Payment for ${id} approved! Package status updated back to In Transit.`);
+    }
+
+    function submitShipmentRequest() {
+      const sender = document.getElementById('reqSender').value;
+      const dest = document.getElementById('reqDest').value;
+      if (!sender || !dest) return alert('Please fill in required fields.');
+      alert('Shipment booking received successfully!');
+      switchView('tracking');
+    }
+
+    // CLICKABLE PAYMENT MODAL GENERATOR
+    function openPaymentModal() {
+      if (!activeCode) return;
+      const pkg = shipments[activeCode];
+      const container = document.getElementById('modalPaymentChannels');
+      container.innerHTML = '';
+
+      // 1. Direct Gateway Button Link
+      if (pkg.gatewayUrl) {
+        container.innerHTML += `
+          <a href="${pkg.gatewayUrl}" target="_blank" class="block w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-center py-3 rounded-lg transition shadow-sm flex items-center justify-center gap-2">
+            <i class="fa-solid fa-credit-card"></i> Pay via Secure Online Gateway 🔒
+          </a>
+        `;
+      }
+
+      // 2. Bitcoin Wallet Box
+      if (pkg.btcAddress) {
+        container.innerHTML += `
+          <div class="bg-slate-50 border border-slate-200 p-3 rounded-lg space-y-1">
+            <span class="font-bold text-slate-700 text-[10px] uppercase block"><i class="fa-brands fa-bitcoin text-amber-500"></i> Bitcoin (BTC) Address:</span>
+            <div class="flex justify-between items-center gap-2">
+              <span id="btcVal" class="font-mono text-slate-800 text-[11px] truncate">${pkg.btcAddress}</span>
+              <button onclick="copyWalletText('btcVal')" class="bg-slate-800 text-white text-[10px] font-bold px-2.5 py-1 rounded hover:bg-slate-700">Copy</button>
+            </div>
+          </div>
+        `;
+      }
+
+      // 3. USDT Wallet Box
+      if (pkg.usdtAddress) {
+        container.innerHTML += `
+          <div class="bg-slate-50 border border-slate-200 p-3 rounded-lg space-y-1">
+            <span class="font-bold text-slate-700 text-[10px] uppercase block"><i class="fa-solid fa-coins text-emerald-500"></i> USDT (TRC20) Address:</span>
+            <div class="flex justify-between items-center gap-2">
+              <span id="usdtVal" class="font-mono text-slate-800 text-[11px] truncate">${pkg.usdtAddress}</span>
+              <button onclick="copyWalletText('usdtVal')" class="bg-slate-800 text-white text-[10px] font-bold px-2.5 py-1 rounded hover:bg-slate-700">Copy</button>
+            </div>
+          </div>
+        `;
+      }
+
+      // 4. Bank Transfer Details Box
+      if (pkg.bankDetails) {
+        container.innerHTML += `
+          <div class="bg-slate-50 border border-slate-200 p-3 rounded-lg space-y-1">
+            <span class="font-bold text-slate-700 text-[10px] uppercase block"><i class="fa-solid fa-building-columns text-blue-900"></i> Bank Transfer Instructions:</span>
+            <pre class="font-mono text-slate-800 text-[11px] whitespace-pre-wrap">${pkg.bankDetails}</pre>
+          </div>
+        `;
+      }
+
+      document.getElementById('paymentModal').classList.remove('hidden');
+    }
+
+    function closePaymentModal() {
+      document.getElementById('paymentModal').classList.add('hidden');
+    }
+
+    function copyWalletText(elementId) {
+      const text = document.getElementById(elementId).innerText;
+      navigator.clipboard.writeText(text);
+      alert('Address copied to clipboard!');
+    }
+
+    function submitProof() {
+      const name = document.getElementById('proofSender').value.trim();
+      const ref = document.getElementById('proofRef').value.trim();
+      if (!name || !ref) return alert('Enter your name and transaction reference.');
+
+      const pkg = shipments[activeCode];
+      if (pkg) {
+        pkg.proofSubmitted = true;
+        pkg.payerName = name;
+        pkg.payerRef = ref;
+        saveData();
+        alert('Payment proof transmitted for verification.');
+        closePaymentModal();
+        performSearch();
+      }
+    }
+  </script>
+</body>
+</html>
